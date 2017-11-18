@@ -1,0 +1,3 @@
+/home/student/Halite/CMakeFiles/edit_cache.dir
+/home/student/Halite/CMakeFiles/rebuild_cache.dir
+/home/student/Halite/CMakeFiles/MyBot.dir

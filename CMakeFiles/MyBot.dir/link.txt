@@ -1,0 +1,1 @@
+/usr/bin/c++    -g -O2 -Wall -Wno-unused-function -pedantic   CMakeFiles/MyBot.dir/hlt/hlt_in.cpp.o CMakeFiles/MyBot.dir/hlt/map.cpp.o CMakeFiles/MyBot.dir/hlt/location.cpp.o CMakeFiles/MyBot.dir/MyBot.cpp.o  -o MyBot -rdynamic 
