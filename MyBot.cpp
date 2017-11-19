@@ -1,7 +1,9 @@
 #include "hlt/hlt.hpp"
 #include "hlt/navigation.hpp"
+#include "hlt/location.hpp"
 #include "djj/navigator.hpp"
 #include "djj/ship.hpp"
+#include <map>
 
 int main() {
     const hlt::Metadata metadata = hlt::initialize("Botv1.0");
@@ -19,20 +21,29 @@ int main() {
             << "; planets: " << initial_map.planets.size();
     hlt::Log::log(initial_map_intelligence.str());
     djj::Navigator nav = djj::Navigator::newNavigator(initial_map); 
-
-    std::set<djj::Ship> myShips;
+    std::map<int, djj::Ship> myShips;
     std::vector<hlt::Move> moves;
+    std::vector<hlt::Location> locs;
+    int turn = -1;
     for (;;) {
+        turn++;
         moves.clear();
+        locs.clear();
         const hlt::Map map = hlt::in::get_map();
 
         for (const hlt::Ship& ship : map.ships.at(player_id)) {
-            myShips.insert(djj::Ship::makeShip(ship.entity_id,ship.location));
-
+            
             if (ship.docking_status != hlt::ShipDockingStatus::Undocked) {
                 continue;
             }
-
+            
+            djj::Ship dship;
+            if(myShips.find(ship.entity_id)==myShips.end()){
+                dship = djj::Ship::makeShip(ship.entity_id,ship.location);
+            }
+            else{
+                dship = myShips[ship.entity_id];
+            }
             for (const hlt::Planet& planet : map.planets) {
                 if (planet.owned) {
                     continue;
@@ -43,14 +54,33 @@ int main() {
                     break;
                 }
 
-                const hlt::possibly<hlt::Move> move =
-                        hlt::navigation::navigate_ship_to_dock(map, ship, planet, hlt::constants::MAX_SPEED / 2);
-                if (move.second) {
-                    moves.push_back(move.first);
+                hlt::Location dest = planet.location;
+                if(dest.pos_x != dship.dest.pos_x || dest.pos_y != dship.dest.pos_y) {
+                    nav.removePlan(dship.plan, ship.location, turn);
+                    dship.plan = nav.getPlan(ship.entity_id,ship.location,dest,planet.radius+4,turn);
+                    dship.dest = dest;
+                }
+                if(!dship.plan.empty()){
+                    moves.push_back(dship.plan.front());
+                    dship.plan.pop();
+                    locs.push_back(ship.location);
+                }
+                else{
+                    hlt::Log::log("Found no moves :(.");
+                    moves.push_back(hlt::Move::noop());
                 }
 
                 break;
             }
+        }
+        //remove moves from map
+        int locIndex = 0;
+        for(int i = 0; i < moves.size(); i++){
+            hlt::Move move = moves[i];
+            if(move.type!=hlt::MoveType::Thrust)continue;
+            hlt::Location loc = locs[locIndex];
+            locIndex++;
+            nav.checkMove(move,loc,turn,false,true);
         }
 
         if (!hlt::out::send_moves(moves)) {

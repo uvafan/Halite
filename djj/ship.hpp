@@ -3,15 +3,16 @@
 #include "../hlt/location.hpp"
 #include "../hlt/move.hpp"
 #include <vector>
+#include <queue>
 
 namespace djj {
     struct Ship {
         int ID;
         hlt::Location dest;
-        std::vector<hlt::Move> plan;
+        std::queue<hlt::Move> plan;
 
         static Ship makeShip(int myID, const hlt::Location& loc){
-            return {myID,loc,std::vector<hlt::Move>()};
+            return {myID,loc,std::queue<hlt::Move>()};
         }
 
         bool operator <(const Ship& s) const{
