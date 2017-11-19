@@ -42,6 +42,7 @@ int main() {
                 dship = djj::Ship::makeShip(ship.entity_id,ship.location);
             }
             else{
+                //hlt::Log::log("found a ship in myShips");
                 dship = myShips[ship.entity_id];
             }
             for (const hlt::Planet& planet : map.planets) {
@@ -55,9 +56,18 @@ int main() {
                 }
 
                 hlt::Location dest = planet.location;
+                std::ostringstream destinfo;
+                destinfo  << "my dest = " << dship.dest.pos_x << " " << dship.dest.pos_y 
+                         << " new dest = " << dest.pos_x << " " << dest.pos_y
+                         << " dist to dest = " << ship.location.get_distance_to(dest)
+                         << " dest radius = " << planet.radius
+                         << " my loc = " << ship.location.pos_x << " " << ship.location.pos_y;
+
+                hlt::Log::log(destinfo.str());
                 if(dest.pos_x != dship.dest.pos_x || dest.pos_y != dship.dest.pos_y) {
                     nav.removePlan(dship.plan, ship.location, turn);
                     dship.plan = nav.getPlan(ship.entity_id,ship.location,dest,planet.radius+4,turn);
+                    hlt::Log::log("Found new plan");
                     dship.dest = dest;
                 }
                 if(!dship.plan.empty()){
@@ -72,6 +82,7 @@ int main() {
 
                 break;
             }
+            myShips[ship.entity_id] = dship;
         }
         //remove moves from map
         int locIndex = 0;
