@@ -14,11 +14,11 @@ int main() {
     // We now have 1 full minute to analyse the initial map.
     std::ostringstream initial_map_intelligence;
     initial_map_intelligence
-            << "width: " << initial_map.map_width
-            << "; height: " << initial_map.map_height
-            << "; players: " << initial_map.ship_map.size()
-            << "; my ships: " << initial_map.ship_map.at(player_id).size()
-            << "; planets: " << initial_map.planets.size();
+        << "width: " << initial_map.map_width
+        << "; height: " << initial_map.map_height
+        << "; players: " << initial_map.ship_map.size()
+        << "; my ships: " << initial_map.ship_map.at(player_id).size()
+        << "; planets: " << initial_map.planets.size();
     hlt::Log::log(initial_map_intelligence.str());
     djj::Navigator nav = djj::Navigator::newNavigator(initial_map); 
     std::map<int, djj::Ship> myShips;
@@ -31,20 +31,28 @@ int main() {
         locs.clear();
         const hlt::Map map = hlt::in::get_map();
 
+        //gather info
         for (const hlt::Ship& ship : map.ships.at(player_id)) {
-            
+
             if (ship.docking_status != hlt::ShipDockingStatus::Undocked) {
+                nav.markDock(ship.location,turn);
                 continue;
             }
-            
+
             djj::Ship dship;
             if(myShips.find(ship.entity_id)==myShips.end()){
                 dship = djj::Ship::makeShip(ship.entity_id,ship.location);
+                myShips[ship.entity_id] = dship;
             }
-            else{
-                //hlt::Log::log("found a ship in myShips");
-                dship = myShips[ship.entity_id];
+        }
+        //decide moves
+        for (const hlt::Ship& ship : map.ships.at(player_id)) {
+
+            if(ship.docking_status != hlt::ShipDockingStatus::Undocked){
+                continue;
             }
+
+            djj::Ship dship = myShips[ship.entity_id];
             for (const hlt::Planet& planet : map.planets) {
                 if (planet.owned) {
                     continue;
@@ -57,17 +65,15 @@ int main() {
 
                 hlt::Location dest = planet.location;
                 std::ostringstream destinfo;
-                destinfo  << "my dest = " << dship.dest.pos_x << " " << dship.dest.pos_y 
-                         << " new dest = " << dest.pos_x << " " << dest.pos_y
-                         << " dist to dest = " << ship.location.get_distance_to(dest)
-                         << " dest radius = " << planet.radius
-                         << " my loc = " << ship.location.pos_x << " " << ship.location.pos_y;
+                destinfo << "ship " << ship.entity_id << " reporting" 
+                    << " my loc = " << ship.location.pos_x << " " << ship.location.pos_y
+                    << " my dest = " << dship.dest.pos_x << " " << dship.dest.pos_y 
+                    << " new dest = " << dest.pos_x << " " << dest.pos_y;
 
                 hlt::Log::log(destinfo.str());
                 if(dship.plan.empty() || dest.pos_x != dship.dest.pos_x || dest.pos_y != dship.dest.pos_y) {
                     nav.removePlan(dship.plan, ship.location, turn);
                     dship.plan = nav.getPlan(ship.entity_id,ship.location,dest,planet.radius+4,turn);
-                    hlt::Log::log("Found new plan");
                     dship.dest = dest;
                 }
                 if(!dship.plan.empty()){
@@ -76,22 +82,25 @@ int main() {
                     locs.push_back(ship.location);
                 }
                 else{
-                    hlt::Log::log("Found no moves :(.");
+                    hlt::Log::log("Found no moves :(");
                     moves.push_back(hlt::Move::noop());
                 }
 
                 break;
             }
             myShips[ship.entity_id] = dship;
+
         }
-        //remove moves from map
+
+        //remove moves from nav map; possible TODO: is it necessary to remove docks?
         int locIndex = 0;
         for(int i = 0; i < moves.size(); i++){
             hlt::Move move = moves[i];
-            if(move.type!=hlt::MoveType::Thrust)continue;
-            hlt::Location loc = locs[locIndex];
-            locIndex++;
-            nav.checkMove(move,loc,turn,false,true);
+            if(move.type==hlt::MoveType::Thrust){
+                hlt::Location loc = locs[locIndex];
+                locIndex++;
+                nav.checkMove(move,loc,turn,false,true);
+            }
         }
 
         if (!hlt::out::send_moves(moves)) {

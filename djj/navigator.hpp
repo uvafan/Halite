@@ -128,14 +128,6 @@ namespace djj {
                 closedMap[int(q.x+.5)][int(q.y+.5)] = q.f;
                 closed.push_back(q);
             }
-            /*while(!open.empty()){
-              node* n = open.top(); open.pop();
-              delete n;
-              }
-              for(auto n: closed){
-              delete n;
-              }*/
-            //hlt::Log::log("reached end");
             return ret;
         }
 
@@ -187,6 +179,14 @@ namespace djj {
             return true;
         }   
 
+        void markDock(const hlt::Location& loc, int turn){
+            int subturn = turn*7;
+            for(int i = 0;i<7;i++){
+                subturn++;
+                markPos(loc,subturn,true,false);
+            }
+        }
+
         //mark all positions in map within ship radius of loc
         bool markPos(const hlt::Location& loc, int turn, bool add, bool remove){
             std::vector<int> xchecks, ychecks;
@@ -194,11 +194,19 @@ namespace djj {
             ychecks.push_back((int)(loc.pos_y)); xchecks.push_back((int)(loc.pos_y+1));
             for(int i = 0; i < 2; i++){
                 for(int j= 0; j < 2; j++){
-                    if(xchecks[i]<0||xchecks[i]>=C||ychecks[j]<0||ychecks[j]>=R)continue;
+                    int x = xchecks[i]; int y = ychecks[j];
+                    if(x<0||x>=C||y<0||y>=R)continue;
                     if(loc.get_distance_to(hlt::Location::newLoc(xchecks[i],ychecks[j])) <= 0.5){
-                        if((!remove && map[xchecks[i]][ychecks[j]].find(turn) != map[xchecks[i]][ychecks[j]].end()) ||
-                                map[xchecks[i]][ychecks[j]].find(-1) != map[xchecks[i]][ychecks[j]].end()){  
-                            hlt::Log::log("rip path");
+                        std::ostringstream debug;
+                        debug << "given loc = " << loc.pos_x << " " << loc.pos_y << " checking " 
+                            << x << " " << y;
+                        hlt::Log::log(debug.str());
+                        if((!remove && map[x][y].find(turn) != map[x][y].end())){
+                            hlt::Log::log("position already claimed");
+                            return false;
+                        }
+                        else if(map[x][y].find(-1) != map[x][y].end()){
+                            hlt::Log::log("position occupied by planet");
                             return false;
                         }
                         if(add){
