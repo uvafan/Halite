@@ -64,7 +64,7 @@ int main() {
                          << " my loc = " << ship.location.pos_x << " " << ship.location.pos_y;
 
                 hlt::Log::log(destinfo.str());
-                if(dest.pos_x != dship.dest.pos_x || dest.pos_y != dship.dest.pos_y) {
+                if(dship.plan.empty() || dest.pos_x != dship.dest.pos_x || dest.pos_y != dship.dest.pos_y) {
                     nav.removePlan(dship.plan, ship.location, turn);
                     dship.plan = nav.getPlan(ship.entity_id,ship.location,dest,planet.radius+4,turn);
                     hlt::Log::log("Found new plan");

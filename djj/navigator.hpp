@@ -23,7 +23,7 @@ namespace djj {
         double y;
         double f;
         double g;
-        node* p;
+        int p;
         bool operator<(const node& cmp) const{
             return f > cmp.f;
         }
@@ -56,40 +56,39 @@ namespace djj {
             hlt::Log::log("finished initializing");
             return {rows, cols, myMap};
         }
-        
-        static bool compare(node* a, node* b){
-            return a->f > b->f;
+
+        static bool compare(node a, node b){
+            return a.f > b.f;
         }
 
         //get plan to get within radius rad - A*, then add plan to map
         std::queue<hlt::Move> getPlan(int ID, const hlt::Location& source, const hlt::Location& target, double rad, int turn){
             std::ostringstream initial;
             initial << "getting plan source = " << source.pos_x << " " << source.pos_y
-                    << " target = " << target.pos_x << " " << target.pos_y << " rad = " << rad;
+                << " target = " << target.pos_x << " " << target.pos_y << " rad = " << rad;
             hlt::Log::log(initial.str());
-            std::priority_queue<node*,std::vector<node*>,std::function<bool(node*,node*)> > open(compare);
+            std::priority_queue<node,std::vector<node>,std::function<bool(node,node)> > open(compare);
             std::vector<std::vector<int> > openMap(C,std::vector<int>(R,0));  
             std::vector<std::vector<int> > closedMap(C,std::vector<int>(R,0));  
-            node* start = new node();
-            start->x=source.pos_x; start->y=source.pos_y; start->f=0; start->g=0; start->p=nullptr;
+            node start = {source.pos_x,source.pos_y,0,0,-1};
             open.push(start);
             bool done = false;
             std::queue<hlt::Move> ret;
-            std::vector<node*> closed;
+            std::vector<node> closed;
             while(!open.empty()&&!done){
                 std::ostringstream debug;
-                node* q = open.top(); open.pop();
-                debug << "processing x = " << q->x << " y = " << q->y << " g = " << q->g << " f = " << q->f;
+                node q = open.top(); open.pop();
+                debug << "processing x = " << q.x << " y = " << q.y << " g = " << q.g << " f = " << q.f;
                 hlt::Log::log(debug.str());
                 for(int i = 0; i < NUM_DIRS; i++){
                     //std::ostringstream timeinfo;
                     double dx = 7 * cos(((double)(i)/NUM_DIRS)*2*PI);
                     double dy = 7 * sin(((double)(i)/NUM_DIRS)*2*PI);
-                    double nx = q->x+dx; double ny = q->y+dy;
+                    double nx = q.x+dx; double ny = q.y+dy;
                     if(nx<0.5||nx>=(C-.5)||ny<0.5||ny>=(C-.5))continue;
                     hlt::Move move = hlt::Move::thrust_rad(ID,7,((double)(i)/NUM_DIRS)*2*PI);    
-                    hlt::Location loc = hlt::Location::newLoc(q->x,q->y);
-                    if(!checkMove(move,loc,turn+q->g,false,false))continue;
+                    hlt::Location loc = hlt::Location::newLoc(q.x,q.y);
+                    if(!checkMove(move,loc,turn+q.g,false,false))continue;
                     hlt::Location nextLoc = hlt::Location::newLoc(nx,ny);
                     double dist = nextLoc.get_distance_to(target);
                     if(dist<=rad){
@@ -99,11 +98,11 @@ namespace djj {
                         success<<"success! final x = "<<nx<<" final y = "<<ny;
                         hlt::Log::log(success.str());
                         while(1){
-                            s.push(getMove(ID,q->x,q->y,toX,toY));
-                            toX = q->x;
-                            toY = q->y;
-                            if(!q->p)break;
-                            q = q->p;
+                            s.push(getMove(ID,q.x,q.y,toX,toY));
+                            toX = q.x;
+                            toY = q.y;
+                            if(q.p==-1)break;
+                            q = closed[q.p];
                             //std::ostringstream IDinf;
                             //IDinf<<"q.x = " << q.x;
                             //hlt::Log::log(IDinf.str());
@@ -113,38 +112,37 @@ namespace djj {
                         }
                         addPlan(ret,source,turn);
                         done = true;
-                        delete q;
+                        //delete q;
                         break;
                     }
-                    double sg = q->g+1;
+                    double sg = q.g+1;
                     double sf = sg+dist;
                     if(openMap[int(nx+.5)][int(ny+.5)]&&openMap[int(nx+.5)][int(ny+.5)]<sf)continue;
                     if(closedMap[int(nx+.5)][int(ny+.5)]&&closedMap[int(nx+.5)][int(ny+.5)]<sf)continue;
                     openMap[int(nx+.5)][int(ny+.5)] = sf;
-                    node* successor = new node();
-                    successor->x=nx;successor->y=ny;successor->f=sf;successor->g=sg;successor->p=q;
+                    node successor = {nx,ny,sf,sg,(int)(closed.size())};
                     //std::ostringstream rip;
                     //hlt::Log::log(rip.str());
                     open.push(successor);
                 }
-                closedMap[int(q->x+.5)][int(q->y+.5)] = q->f;
+                closedMap[int(q.x+.5)][int(q.y+.5)] = q.f;
                 closed.push_back(q);
             }
             /*while(!open.empty()){
-                node* n = open.top(); open.pop();
-                delete n;
-            }
-            for(auto n: closed){
-                delete n;
-            }*/
-            hlt::Log::log("reached end");
+              node* n = open.top(); open.pop();
+              delete n;
+              }
+              for(auto n: closed){
+              delete n;
+              }*/
+            //hlt::Log::log("reached end");
             return ret;
         }
 
         static hlt::Move getMove(int ID, double x1, double y1, double x2, double y2){
-            std::ostringstream moveinf;
-            moveinf << "getting move from " << x1 << " " << y1 << " " << x2 << " " << y2;
-            hlt::Log::log(moveinf.str());
+            /*std::ostringstream moveinf;
+              moveinf << "getting move from " << x1 << " " << y1 << " " << x2 << " " << y2;
+              hlt::Log::log(moveinf.str());*/
             double dx = x2-x1; double dy = y2-y1;
             double thrust = sqrt(dx*dx+dy*dy);
             double angle = atan2(dy,dx);
@@ -161,7 +159,7 @@ namespace djj {
                 turn++;
             }
         }
-        
+
         //adds all moves in plan from map
         void addPlan(std::queue<hlt::Move> plan, const hlt::Location& start, int turn){
             hlt::Location track = start;
@@ -199,7 +197,10 @@ namespace djj {
                     if(xchecks[i]<0||xchecks[i]>=C||ychecks[j]<0||ychecks[j]>=R)continue;
                     if(loc.get_distance_to(hlt::Location::newLoc(xchecks[i],ychecks[j])) <= 0.5){
                         if((!remove && map[xchecks[i]][ychecks[j]].find(turn) != map[xchecks[i]][ychecks[j]].end()) ||
-                               map[xchecks[i]][ychecks[j]].find(-1) != map[xchecks[i]][ychecks[j]].end())  return false;
+                                map[xchecks[i]][ychecks[j]].find(-1) != map[xchecks[i]][ychecks[j]].end()){  
+                            hlt::Log::log("rip path");
+                            return false;
+                        }
                         if(add){
                             map[xchecks[i]][ychecks[j]].insert(turn);
                         }
