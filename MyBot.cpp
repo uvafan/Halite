@@ -1,5 +1,7 @@
 #include "hlt/hlt.hpp"
 #include "hlt/navigation.hpp"
+#include "djj/navigator.hpp"
+#include "djj/ship.hpp"
 
 int main() {
     const hlt::Metadata metadata = hlt::initialize("Botv1.0");
@@ -16,13 +18,17 @@ int main() {
             << "; my ships: " << initial_map.ship_map.at(player_id).size()
             << "; planets: " << initial_map.planets.size();
     hlt::Log::log(initial_map_intelligence.str());
+    djj::Navigator nav = djj::Navigator::newNavigator(initial_map); 
 
+    std::set<djj::Ship> myShips;
     std::vector<hlt::Move> moves;
     for (;;) {
         moves.clear();
         const hlt::Map map = hlt::in::get_map();
 
         for (const hlt::Ship& ship : map.ships.at(player_id)) {
+            myShips.insert(djj::Ship::makeShip(ship.entity_id,ship.location));
+
             if (ship.docking_status != hlt::ShipDockingStatus::Undocked) {
                 continue;
             }

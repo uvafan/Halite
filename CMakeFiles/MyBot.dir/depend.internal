@@ -3,6 +3,8 @@
 
 CMakeFiles/MyBot.dir/MyBot.cpp.o
  /home/student/Halite/MyBot.cpp
+ /home/student/Halite/djj/navigator.hpp
+ /home/student/Halite/djj/ship.hpp
  /home/student/Halite/hlt/collision.hpp
  /home/student/Halite/hlt/constants.hpp
  /home/student/Halite/hlt/entity.hpp

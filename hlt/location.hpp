@@ -26,6 +26,11 @@ namespace hlt {
             return std::atan2(dy, dx) + 2 * M_PI;
         }
 
+
+        static Location newLoc(double x, double y){
+            return {x,y};
+        }
+
         Location get_closest_point(const Location& target, const double target_radius) const {
             const double radius = target_radius + constants::MIN_DISTANCE_FOR_CLOSEST_POINT;
             const double angle_rad = target.orient_towards_in_rad(*this);
