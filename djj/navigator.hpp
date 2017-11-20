@@ -16,7 +16,7 @@
 
 #define SUBTURNS 7
 #define PI 3.14159265
-#define NUM_DIRS 8
+#define NUM_DIRS 12 
 #define COLLISION_THRESHOLD 1.0
 
 namespace djj {
@@ -69,6 +69,7 @@ namespace djj {
             initial << "getting plan source = " << source.pos_x << " " << source.pos_y
                 << " target = " << target.pos_x << " " << target.pos_y << " rad = " << rad;
             hlt::Log::log(initial.str());
+            int thrusts[] = {4,7};
             std::priority_queue<node,std::vector<node>,std::function<bool(node,node)> > open(compare);
             std::vector<std::vector<int> > openMap(C,std::vector<int>(R,0));  
             std::vector<std::vector<int> > closedMap(C,std::vector<int>(R,0));  
@@ -84,51 +85,53 @@ namespace djj {
                 hlt::Log::log(debug.str());
                 hlt::Location loc = hlt::Location::newLoc(q.x,q.y);
                 for(int i = 0; i < NUM_DIRS; i++){
-                    //std::ostringstream timeinfo;
-                    double dx = 7 * cos(((double)(i)/NUM_DIRS)*2*PI);
-                    double dy = 7 * sin(((double)(i)/NUM_DIRS)*2*PI);
-                    double nx = q.x+dx; double ny = q.y+dy;
-                    if(nx<0.5||nx>=(C-.5)||ny<0.5||ny>=(C-.5))continue;
-                    hlt::Move move = hlt::Move::thrust_rad(ID,7,((double)(i)/NUM_DIRS)*2*PI);    
-                    if(!checkMove(move,loc,turn+q.g,false,false))continue;
-                    hlt::Location nextLoc = hlt::Location::newLoc(nx,ny);
-                    double dist = nextLoc.get_distance_to(target);
-                    if(dist<=rad){
-                        std::stack<hlt::Move> s;
-                        double toX = nx; double toY = ny;
-                        std::ostringstream success;
-                        success<<"success! final x = "<<nx<<" final y = "<<ny;
-                        hlt::Log::log(success.str());
-                        while(1){
-                            s.push(getMove(ID,q.x,q.y,toX,toY));
-                            toX = q.x;
-                            toY = q.y;
-                            if(q.p==-1)break;
-                            q = closed[q.p];
-                            //std::ostringstream IDinf;
-                            //IDinf<<"q.x = " << q.x;
-                            //hlt::Log::log(IDinf.str());
+                    for(auto thrust: thrusts){
+                        //std::ostringstream timeinfo;
+                        double dx = thrust * cos(((double)(i)/NUM_DIRS)*2*PI);
+                        double dy = thrust * sin(((double)(i)/NUM_DIRS)*2*PI);
+                        double nx = q.x+dx; double ny = q.y+dy;
+                        if(nx<0.5||nx>=(C-.5)||ny<0.5||ny>=(C-.5))continue;
+                        hlt::Move move = hlt::Move::thrust_rad(ID,thrust,((double)(i)/NUM_DIRS)*2*PI);    
+                        if(!checkMove(move,loc,turn+q.g,false,false))continue;
+                        hlt::Location nextLoc = hlt::Location::newLoc(nx,ny);
+                        double dist = nextLoc.get_distance_to(target);
+                        if(dist<=rad){
+                            std::stack<hlt::Move> s;
+                            double toX = nx; double toY = ny;
+                            std::ostringstream success;
+                            success<<"success! final x = "<<nx<<" final y = "<<ny;
+                            hlt::Log::log(success.str());
+                            while(1){
+                                s.push(getMove(ID,q.x,q.y,toX,toY));
+                                toX = q.x;
+                                toY = q.y;
+                                if(q.p==-1)break;
+                                q = closed[q.p];
+                                //std::ostringstream IDinf;
+                                //IDinf<<"q.x = " << q.x;
+                                //hlt::Log::log(IDinf.str());
+                            }
+                            while(!s.empty()){
+                                ret.push(s.top()); s.pop();
+                            }
+                            addPlan(ret,source,turn);
+                            done = true;
+                            //delete q;
+                            break;
                         }
-                        while(!s.empty()){
-                            ret.push(s.top()); s.pop();
-                        }
-                        addPlan(ret,source,turn);
-                        done = true;
-                        //delete q;
-                        break;
+                        double sg = q.g+1;
+                        double sf = sg+dist;
+                        if(openMap[int(nx+.5)][int(ny+.5)]&&openMap[int(nx+.5)][int(ny+.5)]<sf)continue;
+                        if(closedMap[int(nx+.5)][int(ny+.5)]&&closedMap[int(nx+.5)][int(ny+.5)]<sf)continue;
+                        openMap[int(nx+.5)][int(ny+.5)] = sf;
+                        node successor = {nx,ny,sf,sg,(int)(closed.size())};
+                        //std::ostringstream rip;
+                        //hlt::Log::log(rip.str());
+                        open.push(successor);
                     }
-                    double sg = q.g+1;
-                    double sf = sg+dist;
-                    if(openMap[int(nx+.5)][int(ny+.5)]&&openMap[int(nx+.5)][int(ny+.5)]<sf)continue;
-                    if(closedMap[int(nx+.5)][int(ny+.5)]&&closedMap[int(nx+.5)][int(ny+.5)]<sf)continue;
-                    openMap[int(nx+.5)][int(ny+.5)] = sf;
-                    node successor = {nx,ny,sf,sg,(int)(closed.size())};
-                    //std::ostringstream rip;
-                    //hlt::Log::log(rip.str());
-                    open.push(successor);
+                    closedMap[int(q.x+.5)][int(q.y+.5)] = q.f;
+                    closed.push_back(q);
                 }
-                closedMap[int(q.x+.5)][int(q.y+.5)] = q.f;
-                closed.push_back(q);
             }
             return ret;
         }
@@ -181,12 +184,8 @@ namespace djj {
             return true;
         }   
 
-        void markDock(const hlt::Location& loc, int turn){
-            int subturn = turn*SUBTURNS;
-            for(int i = 0;i<SUBTURNS;i++){
-                subturn++;
-                markPos(loc,subturn,true,false);
-            }
+        void markDock(const hlt::Location& loc){
+            markPos(loc,-1,true,false);
         }
 
         //mark all positions in map within ship radius of loc
@@ -201,7 +200,7 @@ namespace djj {
                 for(int j= 0; j < 2; j++){
                     int x = xchecks[i]; int y = ychecks[j];
                     if(x<0||x>=C||y<0||y>=R)continue;
-                    if(loc.get_distance_to(hlt::Location::newLoc(x,y)) <= 1.0){
+                    if(loc.get_distance_to(hlt::Location::newLoc(x,y)) <= COLLISION_THRESHOLD){
                         //std::ostringstream debug;
                         //debug << "checking " << x << " " << y;
                         //hlt::Log::log(debug.str());
@@ -210,7 +209,7 @@ namespace djj {
                             return false;
                         }
                         else if(map[x][y].find(-1) != map[x][y].end()){
-                            hlt::Log::log("position occupied by planet");
+                            hlt::Log::log("position occupied by planet or docked ship");
                             return false;
                         }
                         if(add){

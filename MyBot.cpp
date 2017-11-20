@@ -5,6 +5,8 @@
 #include "djj/ship.hpp"
 #include <map>
 
+#define MAX_PLANS_CALC 50
+
 int main() {
     const hlt::Metadata metadata = hlt::initialize("Botv1.1");
     const hlt::PlayerId player_id = metadata.player_id;
@@ -25,7 +27,9 @@ int main() {
     std::vector<hlt::Move> moves;
     std::vector<hlt::Location> locs;
     int turn = -1;
+    int plans;
     for (;;) {
+        plans = 0;
         turn++;
         moves.clear();
         locs.clear();
@@ -35,8 +39,15 @@ int main() {
         for (const hlt::Ship& ship : map.ships.at(player_id)) {
 
             if (ship.docking_status != hlt::ShipDockingStatus::Undocked) {
-                nav.markDock(ship.location,turn);
                 continue;
+            }
+
+            for (const hlt::Planet& planet : map.planets) {
+                if (ship.can_dock(planet)) {
+                    moves.push_back(hlt::Move::dock(ship.entity_id, planet.entity_id));
+                    nav.markDock(ship.location);
+                    break;
+                }
             }
 
             djj::Ship dship;
@@ -53,15 +64,18 @@ int main() {
             }
 
             djj::Ship dship = myShips[ship.entity_id];
-            for (const hlt::Planet& planet : map.planets) {
-                if (planet.owned) {
-                    continue;
-                }
-
-                if (ship.can_dock(planet)) {
-                    moves.push_back(hlt::Move::dock(ship.entity_id, planet.entity_id));
+            
+            bool stop = false;
+            for(const hlt::Planet& planet: map.planets){
+                if(ship.can_dock(planet)){
+                    stop = true;
                     break;
                 }
+            }
+            if(stop)continue;
+
+            for (const hlt::Planet& planet : map.planets) {
+                if(planet.owned)continue;
 
                 hlt::Location dest = planet.location;
                 std::ostringstream destinfo;
@@ -71,7 +85,10 @@ int main() {
                     << " new dest = " << dest.pos_x << " " << dest.pos_y;
 
                 hlt::Log::log(destinfo.str());
-                if(dship.plan.empty() || dest.pos_x != dship.dest.pos_x || dest.pos_y != dship.dest.pos_y) {
+                if(plans < MAX_PLANS_CALC && (dship.plan.empty() || dest.pos_x != dship.dest.pos_x 
+                   || dest.pos_y != dship.dest.pos_y || !nav.checkMove(dship.plan.front(),ship.location,-1,false,false))){
+                    //calc new plan
+                    plans++;
                     nav.removePlan(dship.plan, ship.location, turn);
                     dship.plan = nav.getPlan(ship.entity_id,ship.location,dest,planet.radius+4,turn);
                     dship.dest = dest;
