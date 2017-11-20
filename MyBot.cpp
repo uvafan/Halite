@@ -43,7 +43,7 @@ int main() {
             }
 
             for (const hlt::Planet& planet : map.planets) {
-                if (ship.can_dock(planet)) {
+                if (ship.can_dock(planet) && !planet.is_full()) {
                     moves.push_back(hlt::Move::dock(ship.entity_id, planet.entity_id));
                     nav.markDock(ship.location);
                     break;
@@ -67,7 +67,7 @@ int main() {
             
             bool stop = false;
             for(const hlt::Planet& planet: map.planets){
-                if(ship.can_dock(planet)){
+                if(ship.can_dock(planet) && !planet.is_full()){
                     stop = true;
                     break;
                 }
