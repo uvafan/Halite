@@ -4,8 +4,7 @@
 #include "djj/navigator.hpp"
 #include "djj/ship.hpp"
 #include <map>
-
-#define MAX_PLANS_CALC 20
+#include <chrono>
 
 int main() {
     const hlt::Metadata metadata = hlt::initialize("Botv1.1.1");
@@ -27,9 +26,10 @@ int main() {
     std::vector<hlt::Move> moves;
     std::vector<hlt::Location> locs;
     int turn = -1;
-    int plans;
+    //int plans;
     for (;;) {
-        plans = 0;
+        std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+        //plans = 0;
         turn++;
         moves.clear();
         locs.clear();
@@ -85,10 +85,12 @@ int main() {
                     << " new dest = " << dest.pos_x << " " << dest.pos_y;
 
                 hlt::Log::log(destinfo.str());
-                if(plans < MAX_PLANS_CALC && (dship.plan.empty() || dest.pos_x != dship.dest.pos_x 
+                std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+                std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end-start);
+                if(time_span.count() < 1.5 && (dship.plan.empty() || dest.pos_x != dship.dest.pos_x 
                    || dest.pos_y != dship.dest.pos_y || !nav.checkMove(dship.plan.front(),ship.location,-1,false,false))){
                     //calc new plan
-                    plans++;
+                    //plans++;
                     nav.removePlan(dship.plan, ship.location, turn);
                     dship.plan = nav.getPlan(ship.entity_id,ship.location,dest,planet.radius+4,turn);
                     dship.dest = dest;

@@ -14,7 +14,7 @@
 #include <chrono>
 #include <memory>
 
-#define SUBTURNS 7
+#define SUBTURNS 14 
 #define PI 3.14159265
 #define NUM_DIRS 12 
 #define COLLISION_THRESHOLD 1.0
@@ -49,7 +49,7 @@ namespace djj {
                     if(x<0||x>=cols)continue;
                     for(int y = minY; y <= maxY; y++){
                         if(y<0||y>=rows)continue;
-                        if(ploc.get_distance_to(hlt::Location::newLoc(x,y))<=rad){
+                        if(ploc.get_distance_to(hlt::Location::newLoc(x,y))<=rad+.5){
                             myMap[x][y].insert(-1);
                         }
                     }
