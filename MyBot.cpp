@@ -5,7 +5,7 @@
 #include "djj/ship.hpp"
 #include <map>
 
-#define MAX_PLANS_CALC 50
+#define MAX_PLANS_CALC 20
 
 int main() {
     const hlt::Metadata metadata = hlt::initialize("Botv1.1.1");
