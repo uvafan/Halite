@@ -14,6 +14,7 @@
 #include <chrono>
 #include <memory>
 
+#define SUBTURNS 7
 #define PI 3.14159265
 #define NUM_DIRS 8
 
@@ -80,6 +81,7 @@ namespace djj {
                 node q = open.top(); open.pop();
                 debug << "processing x = " << q.x << " y = " << q.y << " g = " << q.g << " f = " << q.f;
                 hlt::Log::log(debug.str());
+                hlt::Location loc = hlt::Location::newLoc(q.x,q.y);
                 for(int i = 0; i < NUM_DIRS; i++){
                     //std::ostringstream timeinfo;
                     double dx = 7 * cos(((double)(i)/NUM_DIRS)*2*PI);
@@ -87,7 +89,6 @@ namespace djj {
                     double nx = q.x+dx; double ny = q.y+dy;
                     if(nx<0.5||nx>=(C-.5)||ny<0.5||ny>=(C-.5))continue;
                     hlt::Move move = hlt::Move::thrust_rad(ID,7,((double)(i)/NUM_DIRS)*2*PI);    
-                    hlt::Location loc = hlt::Location::newLoc(q.x,q.y);
                     if(!checkMove(move,loc,turn+q.g,false,false))continue;
                     hlt::Location nextLoc = hlt::Location::newLoc(nx,ny);
                     double dist = nextLoc.get_distance_to(target);
@@ -165,13 +166,13 @@ namespace djj {
 
         //alters path of move in some way
         bool checkMove(hlt::Move move, const hlt::Location& start, int turn, bool add, bool remove){
-            int subturn = turn*7;
+            int subturn = turn*SUBTURNS;
             std::pair<double,double> dxdy = movetodxdy(move);
-            double stepx = dxdy.first/7.0;
-            double stepy = dxdy.second/7.0;
+            double stepx = dxdy.first/(double)(SUBTURNS);
+            double stepy = dxdy.second/(double)(SUBTURNS);
             double curX = start.pos_x;
             double curY = start.pos_y;
-            for(int i = 0;i < 7;i++){
+            for(int i = 0;i < SUBTURNS;i++){
                 subturn++;
                 curX += stepx; curY += stepy;
                 if(!markPos(hlt::Location::newLoc(curX,curY), subturn, add, remove))return false;
@@ -180,8 +181,8 @@ namespace djj {
         }   
 
         void markDock(const hlt::Location& loc, int turn){
-            int subturn = turn*7;
-            for(int i = 0;i<7;i++){
+            int subturn = turn*SUBTURNS;
+            for(int i = 0;i<SUBTURNS;i++){
                 subturn++;
                 markPos(loc,subturn,true,false);
             }
@@ -191,16 +192,18 @@ namespace djj {
         bool markPos(const hlt::Location& loc, int turn, bool add, bool remove){
             std::vector<int> xchecks, ychecks;
             xchecks.push_back((int)(loc.pos_x)); xchecks.push_back((int)(loc.pos_x+1));
-            ychecks.push_back((int)(loc.pos_y)); xchecks.push_back((int)(loc.pos_y+1));
+            ychecks.push_back((int)(loc.pos_y)); ychecks.push_back((int)(loc.pos_y+1));
+            //std::ostringstream d;
+            //d << "markPos called with loc " << loc.pos_x << " " << loc.pos_y;
+            //hlt::Log::log(d.str());
             for(int i = 0; i < 2; i++){
                 for(int j= 0; j < 2; j++){
                     int x = xchecks[i]; int y = ychecks[j];
                     if(x<0||x>=C||y<0||y>=R)continue;
-                    if(loc.get_distance_to(hlt::Location::newLoc(xchecks[i],ychecks[j])) <= 0.5){
-                        std::ostringstream debug;
-                        debug << "given loc = " << loc.pos_x << " " << loc.pos_y << " checking " 
-                            << x << " " << y;
-                        hlt::Log::log(debug.str());
+                    if(loc.get_distance_to(hlt::Location::newLoc(x,y)) <= 0.5){
+                        //std::ostringstream debug;
+                        //debug << "checking " << x << " " << y;
+                        //hlt::Log::log(debug.str());
                         if((!remove && map[x][y].find(turn) != map[x][y].end())){
                             hlt::Log::log("position already claimed");
                             return false;
