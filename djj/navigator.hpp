@@ -17,6 +17,7 @@
 #define SUBTURNS 7
 #define PI 3.14159265
 #define NUM_DIRS 8
+#define COLLISION_THRESHOLD 1.0
 
 namespace djj {
     struct node {
@@ -200,7 +201,7 @@ namespace djj {
                 for(int j= 0; j < 2; j++){
                     int x = xchecks[i]; int y = ychecks[j];
                     if(x<0||x>=C||y<0||y>=R)continue;
-                    if(loc.get_distance_to(hlt::Location::newLoc(x,y)) <= 0.5){
+                    if(loc.get_distance_to(hlt::Location::newLoc(x,y)) <= 1.0){
                         //std::ostringstream debug;
                         //debug << "checking " << x << " " << y;
                         //hlt::Log::log(debug.str());
