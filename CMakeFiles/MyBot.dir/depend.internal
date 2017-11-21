@@ -3,7 +3,9 @@
 
 CMakeFiles/MyBot.dir/MyBot.cpp.o
  /home/student/Halite/MyBot.cpp
+ /home/student/Halite/djj/macrocontroller.hpp
  /home/student/Halite/djj/navigator.hpp
+ /home/student/Halite/djj/objective.hpp
  /home/student/Halite/djj/ship.hpp
  /home/student/Halite/hlt/collision.hpp
  /home/student/Halite/hlt/constants.hpp
@@ -17,7 +19,6 @@ CMakeFiles/MyBot.dir/MyBot.cpp.o
  /home/student/Halite/hlt/move.hpp
  /home/student/Halite/hlt/navigation.hpp
  /home/student/Halite/hlt/planet.hpp
- /home/student/Halite/hlt/ship.hpp
  /home/student/Halite/hlt/types.hpp
  /home/student/Halite/hlt/util.hpp
 CMakeFiles/MyBot.dir/hlt/hlt_in.cpp.o
