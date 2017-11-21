@@ -15,6 +15,7 @@ namespace djj {
         std::unordered_map<int,int> shipsLastSeen;
         std::unordered_map<int,djj::Ship> shipsByID;
         std::map<Objective,int> objectiveLastNeeded;
+        hlt::Map curMap;
         int player_id;
 
         static Macrocontroller newMacrocontroller(const hlt::Map& m, int pid){
@@ -26,11 +27,9 @@ namespace djj {
                 sbid[ship.entity_id] = Ship::makeShip(ship.entity_id,ship.location);
             }
             for(const hlt::Planet& planet : m.planets){
-                //hlt::Log::log("h");
                 oln[Objective::newObjective(ObjType::dockUnownedPlanet,planet.location,planet.radius)] = -1;
-                //hlt::Log::log("b");
             }
-            return {sls,sbid,oln,pid};
+            return {sls,sbid,oln,m,pid};
         }
 
         void updateMapInfo(const hlt::Map& m, int turn){
@@ -39,17 +38,37 @@ namespace djj {
             }
             for(const hlt::Planet& planet : m.planets){
                 //TODO: change type depending on circumstances
-                Objective o = Objective::newObjective(ObjType::dockUnownedPlanet,planet.location,planet.radius);
-                auto it = objectiveLastNeeded.find(o);
-                if(it == objectiveLastNeeded.end()){
-                    objectiveLastNeeded[o] = turn;
+                std::vector<Objective> objs;
+                if(!planet.owned){
+                    objs.push_back(Objective::newObjective(ObjType::dockUnownedPlanet,planet.location,planet.radius));
                 }
                 else{
-                    objectiveLastNeeded[it->first] = turn;
+                    std::vector<hlt::EntityId> docked_ships = planet.docked_ships;
+
+                    if(shipsLastSeen.find(docked_ships[0]) != shipsLastSeen.end()){
+                        objs.push_back(Objective::newObjective(ObjType::defendPlanet,planet.location,planet.radius));
+                        if(!planet.is_full()){
+                            objs.push_back(Objective::newObjective(ObjType::dockOwnedPlanet,planet.location,planet.radius));
+                        }
+                    }
+                    else{
+                        objs.push_back(Objective::newObjective(ObjType::harassPlanet,planet.location,planet.radius));
+                    }
+                }
+                for(Objective o: objs){
+                    auto it = objectiveLastNeeded.find(o);
+                    if(it == objectiveLastNeeded.end()){
+                        objectiveLastNeeded[o] = turn;
+                    }
+                    else{
+                        objectiveLastNeeded[it->first] = turn;
+                    }
                 }
             }
+            //remove all the stuff in shipsLastSeen and objectiveLastNeeded and shipsByID that don't don't have val turn
+            curMap = m;
         }
-        
+
         std::vector<hlt::Move> getMoves(int turn){
             std::vector<hlt::Move> moves;
             return moves;

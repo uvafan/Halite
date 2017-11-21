@@ -81,6 +81,8 @@ memory
 /home/student/Halite/hlt/map.hpp
 ../hlt/planet.hpp
 /home/student/Halite/hlt/planet.hpp
+../hlt/types.hpp
+/home/student/Halite/hlt/types.hpp
 ship.hpp
 /home/student/Halite/djj/ship.hpp
 navigator.hpp

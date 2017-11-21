@@ -41,6 +41,10 @@ namespace hlt {
             return { x, y };
         }
 
+        bool operator<(const Location &l) const{
+            return pos_x < l.pos_x || (pos_x == l.pos_x && pos_y < l.pos_y);
+        }
+
         friend std::ostream& operator<<(std::ostream& out, const Location& location);
     };
 
