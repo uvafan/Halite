@@ -188,6 +188,10 @@ namespace djj {
             markPos(loc,-1,true,false);
         }
 
+        void removeDock(const hlt::Location& loc){
+            markPos(loc,-1,false,true);
+        }
+
         //mark all positions in map within ship radius of loc
         bool markPos(const hlt::Location& loc, int turn, bool add, bool remove){
             std::vector<int> xchecks, ychecks;
@@ -208,7 +212,7 @@ namespace djj {
                             hlt::Log::log("position already claimed");
                             return false;
                         }
-                        else if(map[x][y].find(-1) != map[x][y].end()){
+                        else if(!remove && map[x][y].find(-1) != map[x][y].end()){
                             hlt::Log::log("position occupied by planet or docked ship");
                             return false;
                         }

@@ -26,12 +26,14 @@ namespace djj {
         hlt::Location targetLoc;
         std::set<hlt::Location> enemyLocs;
         double targetRad;
+        double enemyRelevanceRad;
+        int priority;
         ObjType type;        
 
         static Objective newObjective(ObjType t, const hlt::Location& loc, double rad){
             std::unordered_set<int> ms;
             std::set<hlt::Location> el;
-            return { ms,loc,el,rad,t };
+            return { ms,loc,el,rad,35,100,t };
         }
 
         bool operator<(const Objective& o) const{
@@ -43,6 +45,11 @@ namespace djj {
             return xLess || (xeq && yLess) || (xeq && yeq && typeLess);
         }
 
+        void updatePriority(){
+            //TODO this 
+            priority = 100;
+        }
+        
         void addShip(int ship){
             myShips.insert(ship);
         }
@@ -52,11 +59,16 @@ namespace djj {
         }
         
         void addEnemyLoc(const hlt::Location& loc){
-            enemyLocs.insert(loc);
+            if(loc.get_distance_to(targetLoc) <= enemyRelevanceRad)
+                enemyLocs.insert(loc);
         }
-
+           
         void removeEnemyLoc(const hlt::Location& loc){
             enemyLocs.erase(loc);
+        }
+
+        void clearEnemyLocs(){
+            enemyLocs.clear();
         }
 
     };
