@@ -72,6 +72,19 @@ namespace djj {
         
     };
 
+    std::string ts(ObjType o){
+        if(o==ObjType::dockUnownedPlanet)return "dock unowned";
+        else if(o == ObjType::dockOwnedPlanet) return "dock owned";
+        else if(o == ObjType::harassPlanet) return "harass";
+        else if(o == ObjType::defendPlanet) return "defend";
+        return "noop";
+    }
+
+    inline std::ostream & operator<<(std::ostream & Str, Objective const & o){
+        Str << "objective of type " << ts(o.type) << " priority " << o.priority << " targetLoc " << o.targetLoc.pos_x << " " << o.targetLoc.pos_y; 
+        return Str;
+    }
+
     bool operator==(const Objective& o1, const Objective& o2){
         return o1.targetLoc == o2.targetLoc && o1.type == o2.type;
     }

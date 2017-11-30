@@ -40,14 +40,19 @@ namespace djj {
         }
 
         void updateMapInfo(const hlt::Map& m, int turn){
+            hlt::Log::log("updating ships");
             for(const hlt::Ship& ship : m.ships.at(player_id)){
                 if(shipsLastSeen.find(ship.entity_id)==shipsLastSeen.end()){
                     shipsByID[ship.entity_id] = Ship::makeShip(ship.entity_id,ship.location);
                 }
                 shipsByID[ship.entity_id].setLocation(ship.location);
                 shipsByID[ship.entity_id].setDocked(ship.docking_status != hlt::ShipDockingStatus::Undocked); 
+                std::ostringstream attendance;
+                attendance << ship.entity_id << " in attendance.";
+                hlt::Log::log(attendance.str());
                 shipsLastSeen[ship.entity_id] = turn;
             }
+            hlt::Log::log("updating objectives");
             for(const hlt::Planet& planet : m.planets){
                 //TODO: remove dead planets from nav map 
                 std::vector<Objective> objs;
@@ -70,6 +75,8 @@ namespace djj {
                 for(Objective o: objs){
                     auto it = objectiveLastNeeded.find(o);
                     if(it == objectiveLastNeeded.end()){
+                        std::ostringstream debugobjadd;
+                        debugobjadd << "adding " << o;
                         objectiveLastNeeded[o] = turn;
                     }
                     else{
@@ -77,18 +84,26 @@ namespace djj {
                     }
                 }
             }
-            for(auto it = shipsLastSeen.begin(); it != shipsLastSeen.end();){
+            hlt::Log::log("removing ships");
+            for(auto it = shipsLastSeen.cbegin(); it != shipsLastSeen.cend();){
                 if(it->second!=turn){
+                    std::ostringstream debugshipr;
                     auto it2 = shipsByID.find(it->first);
+                    debugshipr << "removing ship " << it->first;
                     nav.removeDock(it2->second.myLoc);
                     shipsByID.erase(it2);
                     shipsLastSeen.erase(it++);                
+                    hlt::Log::log(debugshipr.str());
                 }
                 else ++it;
             }
-            for(auto it = objectiveLastNeeded.begin(); it != objectiveLastNeeded.end();){
+            hlt::Log::log("removing objectives");
+            for(auto it = objectiveLastNeeded.cbegin(); it != objectiveLastNeeded.cend();){
                 if(it->second!=turn){
-                    objectiveLastNeeded.erase(++it);
+                    std::ostringstream debugrip;
+                    debugrip << "removing " << it->first;
+                    hlt::Log::log(debugrip.str());
+                    objectiveLastNeeded.erase(it++);
                 }
                 else ++it;
             }
@@ -145,6 +160,10 @@ namespace djj {
 
         std::vector<hlt::Move> determineMoves(Objective o, std::vector<hlt::Move> moves, int turn){
             //if the distance from targetLoc to enemy is too close, do micro shit; otherwise, move as safely as possible
+            if(!o.myShips.size())return moves;
+            std::ostringstream objdebug;
+            objdebug << o;
+            hlt::Log::log(objdebug.str());
             hlt::Location targetLoc = o.targetLoc;
             bool microMode = o.enemyShips.size();
             if(microMode){
@@ -195,6 +214,7 @@ namespace djj {
                 nav.removeDock(s.myLoc);
                 Objective myObj = s.obj;
                 if(objectiveLastNeeded.find(myObj) == objectiveLastNeeded.end()){
+                    std::ostringstream assignDebug;
                     int maxScore = -INF; 
                     Objective bestObj = Objective::newObjective(ObjType::noop, s.myLoc, 0);
                     for(auto it: objectiveLastNeeded){
@@ -211,6 +231,8 @@ namespace djj {
                     bestObj.addShip(s.ID);
                     bestObj.updatePriority();
                     objectiveLastNeeded[bestObj] = turn;
+                    assignDebug << "assigning new objective to ship " << s.ID;
+                    hlt::Log::log(assignDebug.str());
                 }
             }
             hlt::Log::log("notifying navigator of enemy ships");
