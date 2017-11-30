@@ -16,7 +16,7 @@ namespace djj {
     struct Macrocontroller {
         std::unordered_map<int,int> shipsLastSeen;
         std::unordered_map<int,Ship> shipsByID;
-        std::map<Objective,int> objectiveLastNeeded;
+        std::set<Objective> objs;
         std::set<hlt::Ship> enemyShips;
         hlt::Map curMap;
         Navigator nav;
@@ -25,7 +25,7 @@ namespace djj {
         static Macrocontroller newMacrocontroller(const hlt::Map& m, int pid){
             std::unordered_map<int,int> sls;
             std::unordered_map<int,Ship> sbid;
-            std::map<Objective,int> oln;
+            std::set<Objective> os;
             std::set<hlt::Ship> es;
             Navigator n = Navigator::newNavigator(m);
 
@@ -34,9 +34,9 @@ namespace djj {
                 sbid[ship.entity_id] = Ship::makeShip(ship.entity_id,ship.location);
             }
             for(const hlt::Planet& planet : m.planets){
-                oln[Objective::newObjective(ObjType::dockUnownedPlanet,planet.location,planet.radius+4)] = -1;
+                os.insert(Objective::newObjective(ObjType::dockUnownedPlanet,planet.location,planet.radius+4,0,planet.docking_spots));
             }
-            return {sls,sbid,oln,es,m,n,pid};
+            return {sls,sbid,os,es,m,n,pid};
         }
 
         void updateMapInfo(const hlt::Map& m, int turn){
@@ -53,34 +53,20 @@ namespace djj {
                 shipsLastSeen[ship.entity_id] = turn;
             }
             hlt::Log::log("updating objectives");
+            objs.clear();
             for(const hlt::Planet& planet : m.planets){
-                //TODO: remove dead planets from nav map 
-                std::vector<Objective> objs;
                 if(!planet.owned){
-                    objs.push_back(Objective::newObjective(ObjType::dockUnownedPlanet,planet.location,planet.radius+4));
+                    objs.insert(Objective::newObjective(ObjType::dockUnownedPlanet,planet.location,planet.radius+4,0,planet.docking_spots));
                 }
                 else{
-                    std::vector<hlt::EntityId> docked_ships = planet.docked_ships;
-
-                    if(shipsLastSeen.find(docked_ships[0]) != shipsLastSeen.end()){
-                        objs.push_back(Objective::newObjective(ObjType::defendPlanet,planet.location,planet.radius+4));
+                    if(planet.owner_id == player_id){
+                        objs.insert(Objective::newObjective(ObjType::defendPlanet,planet.location,planet.radius+4,planet.docked_ships.size(),planet.docking_spots));
                         if(!planet.is_full()){
-                            objs.push_back(Objective::newObjective(ObjType::dockOwnedPlanet,planet.location,planet.radius+4));
+                            objs.insert(Objective::newObjective(ObjType::dockOwnedPlanet,planet.location,planet.radius+4,planet.docked_ships.size(),planet.docking_spots));
                         }
                     }
                     else{
-                        objs.push_back(Objective::newObjective(ObjType::harassPlanet,planet.location,planet.radius+4));
-                    }
-                }
-                for(Objective o: objs){
-                    auto it = objectiveLastNeeded.find(o);
-                    if(it == objectiveLastNeeded.end()){
-                        std::ostringstream debugobjadd;
-                        debugobjadd << "adding " << o;
-                        objectiveLastNeeded[o] = turn;
-                    }
-                    else{
-                        objectiveLastNeeded[it->first] = turn;
+                        objs.insert(Objective::newObjective(ObjType::harassPlanet,planet.location,planet.radius+4,planet.docked_ships.size(),planet.docking_spots));
                     }
                 }
             }
@@ -94,16 +80,6 @@ namespace djj {
                     shipsByID.erase(it2);
                     shipsLastSeen.erase(it++);                
                     hlt::Log::log(debugshipr.str());
-                }
-                else ++it;
-            }
-            hlt::Log::log("removing objectives");
-            for(auto it = objectiveLastNeeded.cbegin(); it != objectiveLastNeeded.cend();){
-                if(it->second!=turn){
-                    std::ostringstream debugrip;
-                    debugrip << "removing " << it->first;
-                    hlt::Log::log(debugrip.str());
-                    objectiveLastNeeded.erase(it++);
                 }
                 else ++it;
             }
@@ -122,12 +98,10 @@ namespace djj {
         }
 
         void updateObjectives(){
-            for(auto it = objectiveLastNeeded.begin(); it != objectiveLastNeeded.end(); it++){
-                Objective o = it->first;
-                //remove dead ships from myShips
-                for(auto s: o.myShips){
-                    if(shipsByID.find(s)==shipsByID.end()){
-                        o.removeShip(s);
+            for(Objective o: objs){
+                for(auto s: shipsByID){
+                    if(s.second.obj == o){
+                        o.addShip(s.second.ID);
                     }
                 }
                 //update enemy ships near me
@@ -141,6 +115,9 @@ namespace djj {
         }
 
         std::vector<hlt::Move> doMicro(Objective o, std::vector<hlt::Move> moves, int turn){
+            std::ostringstream microd;
+            microd << "doing micro " << o;
+            hlt::Log::log(microd.str());
             int myShipCount = o.myShips.size();
             for(int sid: o.myShips){
                 Ship s = shipsByID[sid];
@@ -213,12 +190,11 @@ namespace djj {
                 }
                 nav.removeDock(s.myLoc);
                 Objective myObj = s.obj;
-                if(objectiveLastNeeded.find(myObj) == objectiveLastNeeded.end()){
+                if(objs.find(myObj) == objs.end()){
                     std::ostringstream assignDebug;
                     int maxScore = -INF; 
-                    Objective bestObj = Objective::newObjective(ObjType::noop, s.myLoc, 0);
-                    for(auto it: objectiveLastNeeded){
-                        Objective o = it.first;
+                    Objective bestObj = Objective::newObjective(ObjType::noop, s.myLoc, 0,0,0);
+                    for(Objective o: objs){
                         int myScore = o.priority - s.myLoc.get_distance_to(o.targetLoc);
                         if(myScore>maxScore){
                             maxScore = myScore;
@@ -227,11 +203,11 @@ namespace djj {
                     }
                     it.second.setObjective(bestObj);
                     it.second.setPlan(std::queue<hlt::Move>());
-                    objectiveLastNeeded.erase(objectiveLastNeeded.find(bestObj));
+                    objs.erase(bestObj);
                     bestObj.addShip(s.ID);
                     bestObj.updatePriority();
-                    objectiveLastNeeded[bestObj] = turn;
-                    assignDebug << "assigning new objective to ship " << s.ID;
+                    objs.insert(bestObj);
+                    assignDebug << "assigning new " << bestObj << " to ship " << s.ID;
                     hlt::Log::log(assignDebug.str());
                 }
             }
@@ -247,8 +223,7 @@ namespace djj {
             }
             //for each objective, get moves
             hlt::Log::log("getting moves");
-            for(auto it: objectiveLastNeeded){
-                Objective o = it.first;
+            for(Objective o: objs){
                 moves = determineMoves(o,moves,turn);
             }
             //remove moves from nav

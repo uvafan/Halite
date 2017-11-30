@@ -81,6 +81,7 @@ namespace djj {
             open.push(start);
             bool done = false;
             std::queue<hlt::Move> ret;
+            if(source.get_distance_to(target)<=rad) return ret;
             std::vector<node> closed;
             while(!open.empty()&&!done){
                 std::ostringstream debug;

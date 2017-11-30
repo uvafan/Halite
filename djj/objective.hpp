@@ -11,6 +11,8 @@
 #include <queue>
 #include <unordered_set>
 
+#define INF 100000000
+
 namespace djj {
     enum class ObjType {
         noop = 0,
@@ -27,12 +29,14 @@ namespace djj {
         double targetRad;
         double enemyRelevanceRad;
         int priority;
-        ObjType type;        
+        ObjType type;
+        int myDocked;        
+        int mySpaces;
 
-        static Objective newObjective(ObjType t, const hlt::Location& loc, double rad){
+        static Objective newObjective(ObjType t, const hlt::Location& loc, double rad, int docked, int cap){
             std::unordered_set<int> ms;
             std::set<hlt::Ship> es;
-            return { ms,loc,es,rad,35,100,t };
+            return { ms,loc,es,rad,35,100,t,docked,cap };
         }
 
         bool operator<(const Objective& o) const{
@@ -45,8 +49,17 @@ namespace djj {
         }
 
         void updatePriority() {
-            //TODO this 
-            priority = 100;
+            int myUndocked = myShips.size();
+            int enemyUndocked = enemyShips.size();
+            if(type == ObjType::harassPlanet) enemyUndocked -= myDocked;
+            else myUndocked -= myDocked;
+            if(type == ObjType::noop)priority = -INF;
+            else if(type == ObjType::dockUnownedPlanet) priority = (mySpaces-myUndocked) * 10;
+            else if(type == ObjType::dockOwnedPlanet) priority = (mySpaces-myDocked-myUndocked) * 5;
+            else if(type == ObjType::harassPlanet) priority = 100 + myUndocked * 10 - enemyUndocked * 10;
+            else{
+                priority = 50 * (enemyUndocked - myUndocked);
+            }
         }
         
         void addShip(int ship) {

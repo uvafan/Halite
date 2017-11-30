@@ -15,7 +15,7 @@ namespace djj {
         Objective obj;
 
         static Ship makeShip(int myID, const hlt::Location& loc){
-            return {myID,loc,std::queue<hlt::Move>(),false,Objective::newObjective(ObjType::noop,loc,0)};
+            return {myID,loc,std::queue<hlt::Move>(),false,Objective::newObjective(ObjType::noop,loc,0,0,0)};
         }
 
         void setPlan(std::queue<hlt::Move> p){
