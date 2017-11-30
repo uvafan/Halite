@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include <math.h>
 #include <queue>
+#include <algorithm>
 #include <stack>
 #include <ctime>
 #include <chrono>
@@ -18,6 +19,7 @@
 #define PI 3.14159265
 #define NUM_DIRS 12 
 #define COLLISION_THRESHOLD 1.0
+#define INF 100000000
 
 namespace djj {
     struct node {
@@ -35,11 +37,13 @@ namespace djj {
         int R;
         int C;
         std::vector<std::vector<std::unordered_set<int> > > map;
+        std::vector<std::vector<std::pair<int,int> > > enemyMap;
 
         static Navigator newNavigator(const hlt::Map& init_map) {
             int rows = init_map.map_height;
             int cols = init_map.map_width;
             std::vector<std::vector<std::unordered_set<int> > > myMap(cols,std::vector<std::unordered_set<int> >(rows,std::unordered_set<int>()));
+            std::vector<std::vector<std::pair<int,int> > > myEnemyMap(cols,std::vector<std::pair<int,int> >(rows,std::make_pair(INF,0)));
             for(auto p: init_map.planets){
                 hlt::Location ploc = p.location;
                 double rad = p.radius;
@@ -56,7 +60,7 @@ namespace djj {
                 }
             }
             hlt::Log::log("finished initializing");
-            return {rows, cols, myMap};
+            return {rows, cols, myMap, myEnemyMap};
         }
 
         static bool compare(node a, node b){
@@ -66,9 +70,9 @@ namespace djj {
         //get plan to get within radius rad - A*, then add plan to map
         std::queue<hlt::Move> getPlan(int ID, const hlt::Location& source, const hlt::Location& target, double rad, int turn){
             std::ostringstream initial;
-            initial << "getting plan source = " << source.pos_x << " " << source.pos_y
-                << " target = " << target.pos_x << " " << target.pos_y << " rad = " << rad;
-            hlt::Log::log(initial.str());
+            //initial << "getting plan source = " << source.pos_x << " " << source.pos_y
+            //    << " target = " << target.pos_x << " " << target.pos_y << " rad = " << rad;
+            //hlt::Log::log(initial.str());
             int thrusts[] = {4,7};
             std::priority_queue<node,std::vector<node>,std::function<bool(node,node)> > open(compare);
             std::vector<std::vector<int> > openMap(C,std::vector<int>(R,0));  
@@ -81,8 +85,8 @@ namespace djj {
             while(!open.empty()&&!done){
                 std::ostringstream debug;
                 node q = open.top(); open.pop();
-                debug << "processing x = " << q.x << " y = " << q.y << " g = " << q.g << " f = " << q.f;
-                hlt::Log::log(debug.str());
+                //debug << "processing x = " << q.x << " y = " << q.y << " g = " << q.g << " f = " << q.f;
+                //hlt::Log::log(debug.str());
                 hlt::Location loc = hlt::Location::newLoc(q.x,q.y);
                 for(int i = 0; i < NUM_DIRS; i++){
                     for(auto thrust: thrusts){
@@ -98,9 +102,9 @@ namespace djj {
                         if(dist<=rad){
                             std::stack<hlt::Move> s;
                             double toX = nx; double toY = ny;
-                            std::ostringstream success;
-                            success<<"success! final x = "<<nx<<" final y = "<<ny;
-                            hlt::Log::log(success.str());
+                            //std::ostringstream success;
+                            //success<<"success! final x = "<<nx<<" final y = "<<ny;
+                            //hlt::Log::log(success.str());
                             while(1){
                                 s.push(getMove(ID,q.x,q.y,toX,toY));
                                 toX = q.x;
@@ -184,6 +188,43 @@ namespace djj {
             return true;
         }   
 
+        void clearEnemies(){
+            enemyMap.assign(C,std::vector<std::pair<int,int> >(R,std::make_pair(INF,0)));
+            
+        }
+
+        void addEnemyLoc(const hlt::Location& loc, int turn, bool undocked){
+            int subturn = turn*SUBTURNS;
+            if(undocked){
+                double stepDist = 7.0/SUBTURNS;
+                int minX = std::max(0,int(loc.pos_x-12)); int maxX = std::min(C-1,int(loc.pos_x+13));
+                int minY = std::max(0,int(loc.pos_y-12)); int maxY = std::min(R-1,int(loc.pos_y+13));
+                for(int x = minX; x <= maxX; x++){
+                    for(int y = minY; y <= maxY; y++){
+                        //min turn at which enemy can attack me
+                        double distToGo = std::max(0.0,loc.get_distance_to(hlt::Location::newLoc(x,y))-5);
+                        int subturnsToGo = int(distToGo/stepDist);
+                        enemyMap[x][y].first = std::min(enemyMap[x][y].first,subturn+subturnsToGo);
+                    }
+                }
+            }
+            else{
+                int minX = std::max(0,int(loc.pos_x-5)); int maxX = std::min(C-1,int(loc.pos_x+6));
+                int minY = std::max(0,int(loc.pos_y-5)); int maxY = std::min(R-1,int(loc.pos_y+6));
+                for(int x = minX; x <= maxX; x++){
+                    for(int y = minY; y <= maxY; y++){
+                        //min turn at which enemy can attack me
+                        double distToShip = loc.get_distance_to(hlt::Location::newLoc(x,y));
+                        if(distToShip<=0.75) //don't collide!
+                            enemyMap[x][y].first = std::min(enemyMap[x][y].first,subturn);
+                        else if(distToShip <= 4.5) //kill him!
+                            enemyMap[x][y].second++;
+                    }
+                }
+
+            }
+        }
+
         void markDock(const hlt::Location& loc){
             markPos(loc,-1,true,false);
         }
@@ -209,11 +250,11 @@ namespace djj {
                         //debug << "checking " << x << " " << y;
                         //hlt::Log::log(debug.str());
                         if((!remove && map[x][y].find(turn) != map[x][y].end())){
-                            hlt::Log::log("position already claimed");
+                            //hlt::Log::log("position already claimed");
                             return false;
                         }
                         else if(!remove && map[x][y].find(-1) != map[x][y].end()){
-                            hlt::Log::log("position occupied by planet or docked ship");
+                            //hlt::Log::log("position occupied by planet or docked ship");
                             return false;
                         }
                         if(add){

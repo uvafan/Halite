@@ -30,5 +30,13 @@ namespace hlt {
         bool can_dock(const Planet& planet) const {
             return location.get_distance_to(planet.location) <= (constants::SHIP_RADIUS + constants::DOCK_RADIUS + planet.radius);
         }
+    
+        bool operator <(const Ship& s) const{
+            return entity_id < s.entity_id;
+        }
+
+    
     };
+    
+    
 }

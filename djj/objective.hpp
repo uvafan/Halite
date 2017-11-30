@@ -5,7 +5,6 @@
 #include "../hlt/map.hpp"
 #include "../hlt/planet.hpp"
 #include "../hlt/types.hpp"
-#include "ship.hpp"
 #include "navigator.hpp"
 #include "objective.hpp"
 #include <vector>
@@ -24,7 +23,7 @@ namespace djj {
     struct Objective {
         std::unordered_set<int> myShips;
         hlt::Location targetLoc;
-        std::set<hlt::Location> enemyLocs;
+        std::set<hlt::Ship> enemyShips;
         double targetRad;
         double enemyRelevanceRad;
         int priority;
@@ -32,8 +31,8 @@ namespace djj {
 
         static Objective newObjective(ObjType t, const hlt::Location& loc, double rad){
             std::unordered_set<int> ms;
-            std::set<hlt::Location> el;
-            return { ms,loc,el,rad,35,100,t };
+            std::set<hlt::Ship> es;
+            return { ms,loc,es,rad,35,100,t };
         }
 
         bool operator<(const Objective& o) const{
@@ -45,12 +44,12 @@ namespace djj {
             return xLess || (xeq && yLess) || (xeq && yeq && typeLess);
         }
 
-        void updatePriority(){
+        void updatePriority() {
             //TODO this 
             priority = 100;
         }
         
-        void addShip(int ship){
+        void addShip(int ship) {
             myShips.insert(ship);
         }
 
@@ -58,19 +57,19 @@ namespace djj {
             myShips.erase(ship);
         }
         
-        void addEnemyLoc(const hlt::Location& loc){
-            if(loc.get_distance_to(targetLoc) <= enemyRelevanceRad)
-                enemyLocs.insert(loc);
+        void addEnemyShip(const hlt::Ship& ship){
+            if(ship.location.get_distance_to(targetLoc) <= enemyRelevanceRad)
+                enemyShips.insert(ship);
         }
            
-        void removeEnemyLoc(const hlt::Location& loc){
-            enemyLocs.erase(loc);
+        void removeEnemyShip(const hlt::Ship& ship){
+            enemyShips.erase(ship);
         }
 
-        void clearEnemyLocs(){
-            enemyLocs.clear();
+        void clearEnemyShips(){
+            enemyShips.clear();
         }
-
+        
     };
 
     bool operator==(const Objective& o1, const Objective& o2){

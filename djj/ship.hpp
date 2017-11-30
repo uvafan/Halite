@@ -9,14 +9,17 @@
 namespace djj {
     struct Ship {
         int ID;
-        hlt::Location dest;
         hlt::Location myLoc;
         std::queue<hlt::Move> plan;
         bool docked;
         Objective obj;
 
-        static Ship makeShip(int myID, const hlt::Location& loc, const hlt::Location& d){
-            return {myID,d,loc,std::queue<hlt::Move>(),false,Objective::newObjective(ObjType::noop,loc,0)};
+        static Ship makeShip(int myID, const hlt::Location& loc){
+            return {myID,loc,std::queue<hlt::Move>(),false,Objective::newObjective(ObjType::noop,loc,0)};
+        }
+
+        void setPlan(std::queue<hlt::Move> p){
+            plan = p;
         }
 
         void setDocked(bool d){

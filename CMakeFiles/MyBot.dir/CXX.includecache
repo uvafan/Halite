@@ -63,6 +63,8 @@ math.h
 -
 queue
 -
+algorithm
+-
 stack
 -
 ctime
@@ -83,8 +85,6 @@ memory
 /home/student/Halite/hlt/planet.hpp
 ../hlt/types.hpp
 /home/student/Halite/hlt/types.hpp
-ship.hpp
-/home/student/Halite/djj/ship.hpp
 navigator.hpp
 /home/student/Halite/djj/navigator.hpp
 objective.hpp
