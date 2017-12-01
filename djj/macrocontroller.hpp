@@ -166,9 +166,14 @@ namespace djj {
                         debug << "calculating new plan from " << s.myLoc.pos_x << " " << s.myLoc.pos_y << " to " << targetLoc.pos_x << " " << targetLoc.pos_y;
                         shipsByID[sid].setPlan(nav.getPlan(sid,s.myLoc,targetLoc,o.targetRad,turn));
                     }
-                    if(!s.plan.empty()){
-                        moves.push_back(s.plan.front());
+                    if(!shipsByID[sid].plan.empty()){
+                        debug << " moving from plan";
+                        moves.push_back(shipsByID[sid].plan.front());
                         shipsByID[sid].plan.pop();
+                    }
+                    else{
+                        debug << " no move found";
+                        nav.markLoc(s.myLoc,turn);
                     }
                     hlt::Log::log(debug.str());
                 }
@@ -197,6 +202,7 @@ namespace djj {
                     Objective bestObj = Objective::newObjective(ObjType::noop, s.myLoc, 0,0,0);
                     for(Objective o: objs){
                         int myScore = o.priority - s.myLoc.get_distance_to(o.targetLoc);
+                        assignDebug << "considering " << o << " score = " << myScore << std::endl;
                         if(myScore>maxScore){
                             maxScore = myScore;
                             bestObj = o;

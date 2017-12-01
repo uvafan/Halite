@@ -15,10 +15,10 @@
 #include <chrono>
 #include <memory>
 
-#define SUBTURNS 21 
+#define SUBTURNS 14 
 #define PI 3.14159265
 #define NUM_DIRS 12 
-#define COLLISION_THRESHOLD 1.5
+#define COLLISION_THRESHOLD 1.0
 #define INF 100000000
 
 namespace djj {
@@ -232,6 +232,14 @@ namespace djj {
 
         void removeDock(const hlt::Location& loc){
             markPos(loc,-1,false,true);
+        }
+
+        void markLoc(const hlt::Location& loc, int turn){
+            int subturn = turn*SUBTURNS;
+            for(int i = 0; i < SUBTURNS; i++){
+                subturn++;
+                markPos(loc,subturn,true,false);
+            }
         }
 
         //mark all positions in map within ship radius of loc
