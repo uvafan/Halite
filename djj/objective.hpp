@@ -71,8 +71,10 @@ namespace djj {
         }
         
         void addEnemyShip(const hlt::Ship& ship){
-            if(ship.location.get_distance_to(targetLoc) <= enemyRelevanceRad)
+            if(ship.location.get_distance_to(targetLoc) <= enemyRelevanceRad){
+                //hlt::Log::log("adding");
                 enemyShips.insert(ship);
+            }
         }
            
         void removeEnemyShip(const hlt::Ship& ship){

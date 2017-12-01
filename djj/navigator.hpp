@@ -15,10 +15,10 @@
 #include <chrono>
 #include <memory>
 
-#define SUBTURNS 14 
+#define SUBTURNS 21 
 #define PI 3.14159265
 #define NUM_DIRS 12 
-#define COLLISION_THRESHOLD 1.0
+#define COLLISION_THRESHOLD 1.5
 #define INF 100000000
 
 namespace djj {

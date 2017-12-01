@@ -98,7 +98,9 @@ namespace djj {
         }
 
         void updateObjectives(){
-            for(Objective o: objs){
+            std::set<Objective> oldObjs = objs;
+            objs.clear();
+            for(Objective o: oldObjs){
                 for(auto s: shipsByID){
                     if(s.second.obj == o){
                         o.addShip(s.second.ID);
@@ -111,12 +113,13 @@ namespace djj {
                 }
                 //update priority
                 o.updatePriority();
+                objs.insert(o);
             }
         }
 
         std::vector<hlt::Move> doMicro(Objective o, std::vector<hlt::Move> moves, int turn){
             std::ostringstream microd;
-            microd << "doing micro " << o;
+            microd << "doing micro ";
             hlt::Log::log(microd.str());
             int myShipCount = o.myShips.size();
             for(int sid: o.myShips){
@@ -159,6 +162,7 @@ namespace djj {
                                 if(s.myLoc.get_distance_to(p.location) < 4 + p.radius && !p.is_full()){
                                     stop = true;
                                     moves.push_back(hlt::Move::dock(sid,p.entity_id));
+                                    hlt::Log::log("docking");
                                     break;
                                 }
                             }
