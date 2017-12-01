@@ -14,7 +14,6 @@
 
 namespace djj {
     struct Macrocontroller {
-        std::unordered_map<int,int> shipsLastSeen;
         std::unordered_map<int,Ship> shipsByID;
         std::set<Objective> objs;
         std::set<hlt::Ship> enemyShips;
@@ -23,34 +22,34 @@ namespace djj {
         int player_id;
 
         static Macrocontroller newMacrocontroller(const hlt::Map& m, int pid){
-            std::unordered_map<int,int> sls;
             std::unordered_map<int,Ship> sbid;
             std::set<Objective> os;
             std::set<hlt::Ship> es;
             Navigator n = Navigator::newNavigator(m);
 
             for(const hlt::Ship& ship : m.ships.at(pid)){
-                sls[ship.entity_id]= -1;
                 sbid[ship.entity_id] = Ship::makeShip(ship.entity_id,ship.location);
             }
             for(const hlt::Planet& planet : m.planets){
                 os.insert(Objective::newObjective(ObjType::dockUnownedPlanet,planet.location,planet.radius+4,0,planet.docking_spots));
             }
-            return {sls,sbid,os,es,m,n,pid};
+            return {sbid,os,es,m,n,pid};
         }
 
         void updateMapInfo(const hlt::Map& m, int turn){
             hlt::Log::log("updating ships");
+            std::vector<int> myShips;
             for(const hlt::Ship& ship : m.ships.at(player_id)){
-                if(shipsLastSeen.find(ship.entity_id)==shipsLastSeen.end()){
+                if(shipsByID.find(ship.entity_id)==shipsByID.end()){
                     shipsByID[ship.entity_id] = Ship::makeShip(ship.entity_id,ship.location);
+                    //hlt::Log::log("hello");
                 }
                 shipsByID[ship.entity_id].setLocation(ship.location);
                 shipsByID[ship.entity_id].setDocked(ship.docking_status != hlt::ShipDockingStatus::Undocked); 
                 std::ostringstream attendance;
                 attendance << ship.entity_id << " in attendance.";
                 hlt::Log::log(attendance.str());
-                shipsLastSeen[ship.entity_id] = turn;
+                myShips.push_back(ship.entity_id);
             }
             hlt::Log::log("updating objectives");
             objs.clear();
@@ -71,18 +70,14 @@ namespace djj {
                 }
             }
             hlt::Log::log("removing ships");
-            for(auto it = shipsLastSeen.cbegin(); it != shipsLastSeen.cend();){
-                if(it->second!=turn){
-                    std::ostringstream debugshipr;
-                    auto it2 = shipsByID.find(it->first);
-                    debugshipr << "removing ship " << it->first;
-                    nav.removeDock(it2->second.myLoc);
-                    shipsByID.erase(it2);
-                    shipsLastSeen.erase(it++);                
-                    hlt::Log::log(debugshipr.str());
-                }
-                else ++it;
+            std::unordered_map<int,Ship> nextsid;
+            for(int sid: myShips){
+                nextsid[sid] = shipsByID[sid];
+                std::ostringstream sdebug;
+                sdebug << "sid " << shipsByID[sid].obj;
+                //hlt::Log::log(sdebug.str());
             }
+            shipsByID = nextsid;
             curMap = m;
             this->updateEnemyShips();
             this->updateObjectives();
@@ -185,11 +180,13 @@ namespace djj {
             std::vector<hlt::Move> moves;
             //assign objectives to ships without them, mark docked ships
             hlt::Log::log("assigning objectives");
+            std::unordered_map<int,Ship> newsid;
             for(auto it: shipsByID){
                 Ship s = it.second;
                 if(s.docked){
                     nav.markDock(s.myLoc);
                     //TODO: determine when to undock
+                    newsid[s.ID] = s;
                     continue;
                 }
                 nav.removeDock(s.myLoc);
@@ -205,15 +202,22 @@ namespace djj {
                             bestObj = o;
                         }
                     }
-                    it.second.setObjective(bestObj);
-                    it.second.setPlan(std::queue<hlt::Move>());
+                    s.setObjective(bestObj);
+                    s.setPlan(std::queue<hlt::Move>());
                     objs.erase(bestObj);
                     bestObj.addShip(s.ID);
                     bestObj.updatePriority();
                     objs.insert(bestObj);
                     assignDebug << "assigning new " << bestObj << " to ship " << s.ID << " old was " << myObj;
                     hlt::Log::log(assignDebug.str());
-                }
+               }
+               newsid[s.ID] = s;
+            }
+            shipsByID = newsid;
+            for(auto it: shipsByID){
+                std::ostringstream objdebug;
+                objdebug << "ship = " << it.first << " " << it.second.obj;
+                //hlt::Log::log(objdebug.str());
             }
             hlt::Log::log("notifying navigator of enemy ships");
             //notify navigator of enemy ship locations
