@@ -299,6 +299,7 @@ namespace djj {
                     }
                 }
             }
+            checkMove(bestMove,s,turn,true,false);
             return std::make_pair(bestMove,nextLoc);
         }
 
@@ -323,6 +324,7 @@ namespace djj {
                     }
                 }
             }
+            checkMove(bestMove,s,turn,true,false);
             return bestMove;
         }
 
