@@ -28,7 +28,7 @@ namespace djj {
         std::set<hlt::Ship> enemyShips;
         double targetRad;
         double enemyRelevanceRad;
-        int priority;
+        double priority;
         ObjType type;
         int myDocked;        
         int mySpaces;
@@ -52,14 +52,63 @@ namespace djj {
             int myUndocked = myShips.size();
             int enemyUndocked = enemyShips.size();
             if(type == ObjType::harassPlanet) enemyUndocked -= myDocked;
-            else myUndocked -= myDocked;
+            else if(type == ObjType::defendPlanet) myUndocked -= myDocked;
             if(type == ObjType::noop)priority = -INF;
-            else if(type == ObjType::dockUnownedPlanet) priority = (mySpaces-myUndocked) * 15;
-            else if(type == ObjType::dockOwnedPlanet) priority = (mySpaces-myDocked-myUndocked) * 10;
+            else if(type == ObjType::dockUnownedPlanet) priority = (mySpaces-myUndocked) * 5 + 20;
+            else if(type == ObjType::dockOwnedPlanet) priority = 20; 
             else if(type == ObjType::harassPlanet) priority = 50 + myUndocked * 10 - enemyUndocked * 10;
             else{
-                priority = 50 * (enemyUndocked - myUndocked);
+                priority = 25 * (enemyUndocked - myUndocked);
             }
+        }
+
+        static hlt::Ship closestShipToLoc(std::set<hlt::Ship> ships, hlt::Location loc, bool excludeZeroAndDocked){
+            double minDist = INF;
+            hlt::Ship ret = *ships.begin();
+            for(const hlt::Ship& s: ships){
+                double dist = loc.get_distance_to(s.location);
+                if((dist < .001 || s.docking_status != hlt::ShipDockingStatus::Undocked) && excludeZeroAndDocked)continue;
+                if(dist<minDist){
+                    minDist = dist;
+                    ret = s;
+                }
+            }
+            return ret;
+        }
+
+        static hlt::Location getMid(hlt::Location loc1, hlt::Location loc2){
+            double newX = (loc1.pos_x + loc2.pos_x) / 2.0;
+            double newY = (loc1.pos_y + loc2.pos_y) / 2.0;
+            return hlt::Location::newLoc(newX,newY);
+        }
+
+        hlt::Ship getTargetDocker(){
+            double bestScore = -INF;
+            hlt::Ship ret = *enemyShips.begin();
+            for(const hlt::Ship& s: enemyShips){
+                if(s.docking_status == hlt::ShipDockingStatus::Undocked){
+                    continue;
+                }
+                hlt::Ship closestDefender = closestShipToLoc(enemyShips,s.location,true);
+                double myScore = 255 - s.health + s.location.get_distance_to(closestDefender.location);
+                if(myScore > bestScore){
+                    bestScore = myScore;
+                    ret = s;
+                }
+            }
+            return ret;
+        }
+
+        hlt::Location getMicroTarget(){
+            if(type == ObjType::harassPlanet){
+                hlt::Ship targetEnemy = this->getTargetDocker();
+                return targetEnemy.location;        
+            }
+            else if(type == ObjType::defendPlanet){
+                hlt::Ship closestEnemy = closestShipToLoc(enemyShips,targetLoc,false);
+                return getMid(targetLoc,closestEnemy.location);
+            }
+            return targetLoc;
         }
         
         void addShip(int ship) {
@@ -73,7 +122,7 @@ namespace djj {
         void addEnemyShip(const hlt::Ship& ship){
             if(ship.location.get_distance_to(targetLoc) <= enemyRelevanceRad){
                 std::ostringstream eas;
-                eas << " adding " << ship.entity_id;
+                //eas << " adding " << ship.entity_id;
                 hlt::Log::log(eas.str());
                 enemyShips.insert(ship);
             }

@@ -18,6 +18,7 @@
 #define SUBTURNS 14 
 #define PI 3.14159265
 #define NUM_DIRS 12 
+#define COMBAT_NUM_DIRS 20
 #define COLLISION_THRESHOLD 1.0
 #define INF 100000000
 
@@ -37,13 +38,15 @@ namespace djj {
         int R;
         int C;
         std::vector<std::vector<std::unordered_set<int> > > map;
-        std::vector<std::vector<std::pair<int,int> > > enemyMap;
+        std::vector<std::vector<int> > enemyDockedMap;
+        std::vector<std::vector<std::vector<std::pair<std::set<hlt::Ship>,std::set<hlt::Ship> > > > > enemyMap;
 
         static Navigator newNavigator(const hlt::Map& init_map) {
             int rows = init_map.map_height;
             int cols = init_map.map_width;
+            std::vector<std::vector<int> > myEDMap (cols,std::vector<int>(rows,0));
             std::vector<std::vector<std::unordered_set<int> > > myMap(cols,std::vector<std::unordered_set<int> >(rows,std::unordered_set<int>()));
-            std::vector<std::vector<std::pair<int,int> > > myEnemyMap(cols,std::vector<std::pair<int,int> >(rows,std::make_pair(INF,0)));
+            std::vector<std::vector<std::vector<std::pair<std::set<hlt::Ship>,std::set<hlt::Ship> > > > > myEnemyMap(cols,std::vector<std::vector<std::pair<std::set<hlt::Ship>,std::set<hlt::Ship> > > >(rows,std::vector<std::pair<std::set<hlt::Ship>,std::set<hlt::Ship> > >(SUBTURNS,std::make_pair(std::set<hlt::Ship>(),std::set<hlt::Ship>()))));
             for(auto p: init_map.planets){
                 hlt::Location ploc = p.location;
                 double rad = p.radius;
@@ -60,7 +63,7 @@ namespace djj {
                 }
             }
             hlt::Log::log("finished initializing");
-            return {rows, cols, myMap, myEnemyMap};
+            return {rows, cols, myMap, myEDMap, myEnemyMap};
         }
 
         static bool compare(node a, node b){
@@ -190,12 +193,12 @@ namespace djj {
         }   
 
         void clearEnemies(){
-            enemyMap.assign(C,std::vector<std::pair<int,int> >(R,std::make_pair(INF,0)));
-            
+            enemyMap.assign(C,std::vector<std::vector<std::pair<std::set<hlt::Ship>,std::set<hlt::Ship> > > >(R,std::vector<std::pair<std::set<hlt::Ship>,std::set<hlt::Ship> > >(SUBTURNS,std::make_pair(std::set<hlt::Ship>(),std::set<hlt::Ship>()))));
+            enemyDockedMap.assign(C,std::vector<int>(R,0));
         }
 
-        void addEnemyLoc(const hlt::Location& loc, int turn, bool undocked){
-            int subturn = turn*SUBTURNS;
+        void addEnemyShip(const hlt::Ship& s, int turn, bool undocked){
+            hlt::Location loc = s.location;
             if(undocked){
                 double stepDist = 7.0/SUBTURNS;
                 int minX = std::max(0,int(loc.pos_x-12)); int maxX = std::min(C-1,int(loc.pos_x+13));
@@ -205,7 +208,9 @@ namespace djj {
                         //min turn at which enemy can attack me
                         double distToGo = std::max(0.0,loc.get_distance_to(hlt::Location::newLoc(x,y))-5);
                         int subturnsToGo = int(distToGo/stepDist);
-                        enemyMap[x][y].first = std::min(enemyMap[x][y].first,subturn+subturnsToGo);
+                        for(int i=subturnsToGo; i<SUBTURNS; i++){
+                            enemyMap[x][y][i].first.insert(s);
+                        }
                     }
                 }
             }
@@ -216,27 +221,119 @@ namespace djj {
                     for(int y = minY; y <= maxY; y++){
                         //min turn at which enemy can attack me
                         double distToShip = loc.get_distance_to(hlt::Location::newLoc(x,y));
-                        if(distToShip<=0.75) //don't collide!
-                            enemyMap[x][y].first = std::min(enemyMap[x][y].first,subturn);
-                        else if(distToShip <= 4.5) //kill him!
-                            enemyMap[x][y].second++;
+                        if(distToShip <= 0.5){ //don't collide!
+                            for(int i=0;i<SUBTURNS;i++){
+                                enemyDockedMap[x][y]=1;
+                            }
+                        }
+                        else if(distToShip <= 4.5){ //kill him!
+                            for(int i=0;i<SUBTURNS;i++){
+                                enemyMap[x][y][i].second.insert(s);
+                            }
+
+                        }
                     }
                 }
 
             }
         }
 
-        void markDock(const hlt::Location& loc){
-            markPos(loc,-1,true,false);
+        double scoreMove(hlt::Move move, hlt::Location start, bool aggressive){
+            std::pair<double,double> dxdy = movetodxdy(move);
+            double stepx = dxdy.first/(double)(SUBTURNS);
+            double stepy = dxdy.second/(double)(SUBTURNS);
+            double curX = start.pos_x;
+            double curY = start.pos_y;
+            std::set<hlt::Ship> potentialDamagers;
+            std::set<hlt::Ship> damagedDockers;
+            for(int i = 0;i < SUBTURNS;i++){
+                curX += stepx; curY += stepy;
+                hlt::Location loc = hlt::Location::newLoc(curX,curY);
+                std::vector<int> xchecks, ychecks;
+                xchecks.push_back((int)(curX)); xchecks.push_back((int)(curX+1));
+                ychecks.push_back((int)(curX)); ychecks.push_back((int)(curX+1));
+                for(int i = 0; i < 2; i++){
+                    for(int j= 0; j < 2; j++){
+                        int x = xchecks[i]; int y = ychecks[j];
+                        if(x<0||x>=C||y<0||y>=R)continue;
+                        if(loc.get_distance_to(hlt::Location::newLoc(x,y)) <= COLLISION_THRESHOLD){
+                            if(enemyDockedMap[x][y])return -INF;
+                            for(hlt::Ship s: enemyMap[x][y][i].first){
+                                potentialDamagers.insert(s);
+                            }
+                            for(hlt::Ship s: enemyMap[x][y][i].second){
+                                damagedDockers.insert(s);
+                            }
+
+                        }
+                    }
+                }
+            }
+            if(aggressive){
+                return damagedDockers.size()*100 - potentialDamagers.size()*20;
+            }
+            return 100 - potentialDamagers.size()*20; 
         }
 
-        void removeDock(const hlt::Location& loc){
-            markPos(loc,-1,false,true);
+        std::pair<hlt::Move,hlt::Location> getAggressiveMove(hlt::Location s, hlt::Location t, hlt::Location swarm, int turn, int ID){
+            int thrusts[] = {2,4,7};
+            hlt::Move bestMove = hlt::Move::noop();
+            hlt::Location nextLoc = s;
+            double bestScore = -INF;
+            for(int i = 0; i < COMBAT_NUM_DIRS; i++){
+                for(auto thrust: thrusts){
+                    double dx = thrust * cos(((double)(i)/NUM_DIRS)*2*PI);
+                    double dy = thrust * sin(((double)(i)/NUM_DIRS)*2*PI);
+                    double nx = s.pos_x+dx; double ny = s.pos_y+dy;
+                    if(nx<0.5||nx>=(C-.5)||ny<0.5||ny>=(C-.5))continue;
+                    hlt::Move move = hlt::Move::thrust_rad(ID,thrust,((double)(i)/NUM_DIRS)*2*PI);    
+                    if(!checkMove(move,s,turn,false,false))continue;
+                    hlt::Location nextL = hlt::Location::newLoc(nx,ny);
+                    double distToT = nextL.get_distance_to(t);
+                    double distToSwarm = nextL.get_distance_to(swarm);
+                    double score = scoreMove(move,s,true);
+                    if(score - distToT - distToSwarm > bestScore){
+                        bestScore = score - distToT - distToSwarm;
+                        bestMove = move;
+                        nextLoc = nextL;
+                    }
+                }
+            }
+            return std::make_pair(bestMove,nextLoc);
         }
+
+        hlt::Move getPassiveMove(hlt::Location s, hlt::Location t, int turn, int ID){
+            int thrusts[] = {2,4,7};
+            hlt::Move bestMove = hlt::Move::noop();
+            double bestScore = -INF;
+            for(int i = 0; i < COMBAT_NUM_DIRS; i++){
+                for(auto thrust: thrusts){
+                    double dx = thrust * cos(((double)(i)/NUM_DIRS)*2*PI);
+                    double dy = thrust * sin(((double)(i)/NUM_DIRS)*2*PI);
+                    double nx = s.pos_x+dx; double ny = s.pos_y+dy;
+                    if(nx<0.5||nx>=(C-.5)||ny<0.5||ny>=(C-.5))continue;
+                    hlt::Move move = hlt::Move::thrust_rad(ID,thrust,((double)(i)/NUM_DIRS)*2*PI);    
+                    if(!checkMove(move,s,turn,false,false))continue;
+                    hlt::Location nextL = hlt::Location::newLoc(nx,ny);
+                    double distToT = nextL.get_distance_to(t);
+                    double score = scoreMove(move,s,true);
+                    if(score - distToT > bestScore){
+                        bestScore = score - distToT;
+                        bestMove = move;
+                    }
+                }
+            }
+            return bestMove;
+        }
+
+        //void removeDock(const hlt::Location& loc){
+        //    markPos(loc,-1,false,true);
+        //}
 
         void markLoc(const hlt::Location& loc, int turn){
             int subturn = turn*SUBTURNS;
-            for(int i = 0; i < SUBTURNS; i++){
+            //mark one turn in advance to avoid someone thinking they're in the clear
+            for(int i = 0; i < SUBTURNS*2; i++){
                 subturn++;
                 markPos(loc,subturn,true,false);
             }

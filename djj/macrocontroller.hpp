@@ -9,6 +9,7 @@
 #include <vector>
 #include <queue>
 #include <map>
+#include <chrono>
 
 #define INF 100000000
 
@@ -59,13 +60,19 @@ namespace djj {
                 }
                 else{
                     if(planet.owner_id == player_id){
-                        objs.insert(Objective::newObjective(ObjType::defendPlanet,planet.location,planet.radius+4,planet.docked_ships.size(),planet.docking_spots));
+                        Objective o = Objective::newObjective(ObjType::defendPlanet,planet.location,planet.radius+4,planet.docked_ships.size(),planet.docking_spots);
+                        for(int sid: planet.docked_ships){
+                            o.addShip(sid);
+                        }
+                        objs.insert(o);
                         if(!planet.is_full()){
-                            objs.insert(Objective::newObjective(ObjType::dockOwnedPlanet,planet.location,planet.radius+4,planet.docked_ships.size(),planet.docking_spots));
+                            Objective o2 = Objective::newObjective(ObjType::dockOwnedPlanet,planet.location,planet.radius+4,planet.docked_ships.size(),planet.docking_spots);
+                            objs.insert(o2); 
                         }
                     }
                     else{
-                        objs.insert(Objective::newObjective(ObjType::harassPlanet,planet.location,planet.radius+4,planet.docked_ships.size(),planet.docking_spots));
+                        Objective o = Objective::newObjective(ObjType::harassPlanet,planet.location,planet.radius+4,planet.docked_ships.size(),planet.docking_spots);
+                        objs.insert(o);
                     }
                 }
             }
@@ -115,27 +122,72 @@ namespace djj {
         std::vector<hlt::Move> doMicro(Objective o, std::vector<hlt::Move> moves, int turn){
             std::ostringstream microd;
             microd << "doing micro ";
-            hlt::Log::log(microd.str());
-            int myShipCount = o.myShips.size();
-            for(int sid: o.myShips){
-                Ship s = shipsByID[sid];
-                if(s.docked)myShipCount--;
+            int myShipCount = o.myShips.size() - o.myDocked;
+            int pid = -1;
+            hlt::Planet toDock = curMap.planets[0];
+            for(const hlt::Planet& p: curMap.planets){
+                if(p.location.pos_x == o.targetLoc.pos_x && p.location.pos_y == o.targetLoc.pos_y && !p.is_full()) {
+                    pid = p.entity_id;
+                    toDock = p;
+                }
+            }
+            if(o.type == ObjType::dockOwnedPlanet){
+                for(Objective o2: objs){
+                    if(o2.targetLoc.pos_x == o.targetLoc.pos_x && o2.targetLoc.pos_y == o.targetLoc.pos_y && o2.type == ObjType::defendPlanet){
+                        myShipCount += o2.myShips.size() - o.myDocked;
+                    }
+                }
             }
             int theirShipCount = o.enemyShips.size();
             for(const hlt::Ship& s: enemyShips){
                 if(s.docking_status != hlt::ShipDockingStatus::Undocked)theirShipCount--;
             }
-            bool aggressive = (myShipCount > theirShipCount);
-            if(aggressive){
+            int aggressionFactor = myShipCount - theirShipCount;
+            microd << "aggFactor = " << aggressionFactor;
+            hlt::Location target = o.getMicroTarget();
+            if(aggressionFactor>0){
+                int shipsSwarming = 0;
+                hlt::Location swarmLoc = target;
+                for(int sid: o.myShips){
+                    Ship s = shipsByID[sid];
+                    shipsByID[sid].setPlan(std::queue<hlt::Move>());
+                    if(aggressionFactor > 0 && pid > -1 && s.myLoc.get_distance_to(toDock.location) < 4 + toDock.radius && !toDock.is_full()){
+                        moves.push_back(hlt::Move::dock(sid,pid));
+                        microd << "added move for ship " << sid;
+                        aggressionFactor--;
+                        continue;
+                    }
+                    std::pair<hlt::Move,hlt::Location> info = nav.getAggressiveMove(s.myLoc,target,swarmLoc,turn,sid);
+                    microd << "added move for ship " << sid;
+                    moves.push_back(info.first);
+                    swarmLoc = updateSL(shipsSwarming,swarmLoc,info.second);
+                    shipsSwarming++;
+                }
             }
             else{
+                for(int sid: o.myShips){
+                    Ship s = shipsByID[sid];
+                    shipsByID[sid].setPlan(std::queue<hlt::Move>());
+                    hlt::Move move = nav.getPassiveMove(s.myLoc,target,turn,sid);
+                    microd << "added move for ship " << sid;
+                    moves.push_back(move);
+                }
             }
+            hlt::Log::log(microd.str());
             return moves;
+        }
+
+        static hlt::Location updateSL(int numShips, hlt::Location med, hlt::Location toAdd){
+            if(!numShips) return toAdd;
+            double newX = (med.pos_x*numShips+toAdd.pos_x) / (numShips+1);
+            double newY = (med.pos_y*numShips+toAdd.pos_y) / (numShips+1);
+            return hlt::Location::newLoc(newX,newY);
         }
 
         std::vector<hlt::Move> determineMoves(Objective o, std::vector<hlt::Move> moves, int turn){
             //if the distance from targetLoc to enemy is too close, do micro shit; otherwise, move as safely as possible
             if(!o.myShips.size())return moves;
+            std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
             std::ostringstream objdebug;
             objdebug << o;
             hlt::Log::log(objdebug.str());
@@ -150,14 +202,24 @@ namespace djj {
                     std::ostringstream debug;
                     debug << "ship " << sid << " reporting for duty ";
                     Ship s = shipsByID[sid];
-                    if(s.plan.empty() || !nav.checkMove(s.plan.front(),s.myLoc,-1,false,false)){
+                    if(s.docked){
+                        nav.markLoc(s.myLoc,turn);    
+                        debug << " docked";
+                        hlt::Log::log(debug.str());
+                        continue;
+                    }
+                    std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+                    std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end-start);
+                    if(time_span.count() < 0.5 && (s.plan.empty() || !nav.checkMove(s.plan.front(),s.myLoc,-1,false,false))){
                         bool stop = false;
                         if(o.type == ObjType::dockUnownedPlanet || o.type == ObjType::dockOwnedPlanet){
                             for(const hlt::Planet& p: curMap.planets){
-                                if(s.myLoc.get_distance_to(p.location) < 4 + p.radius && !p.is_full()){
+                                if(s.myLoc.get_distance_to(p.location) < 4 + p.radius && !p.is_full() && p.location.pos_x == targetLoc.pos_x && p.location.pos_y == targetLoc.pos_y){
                                     stop = true;
                                     moves.push_back(hlt::Move::dock(sid,p.entity_id));
-                                    hlt::Log::log("docking");
+                                    debug << " docking";
+                                    shipsByID[sid].setObjective(Objective::newObjective(ObjType::defendPlanet,p.location,0,0,0));
+                                    hlt::Log::log(debug.str());
                                     break;
                                 }
                             }
@@ -188,20 +250,13 @@ namespace djj {
             std::unordered_map<int,Ship> newsid;
             for(auto it: shipsByID){
                 Ship s = it.second;
-                if(s.docked){
-                    nav.markDock(s.myLoc);
-                    //TODO: determine when to undock
-                    newsid[s.ID] = s;
-                    continue;
-                }
-                nav.removeDock(s.myLoc);
                 Objective myObj = s.obj;
                 if(objs.find(myObj) == objs.end()){
                     std::ostringstream assignDebug;
-                    int maxScore = -INF; 
+                    double maxScore = -INF; 
                     Objective bestObj = Objective::newObjective(ObjType::noop, s.myLoc, 0,0,0);
                     for(Objective o: objs){
-                        int myScore = o.priority - s.myLoc.get_distance_to(o.targetLoc);
+                        double myScore = o.priority - s.myLoc.get_distance_to(o.targetLoc);
                         assignDebug << "considering " << o << " score = " << myScore << std::endl;
                         if(myScore>maxScore){
                             maxScore = myScore;
@@ -216,8 +271,8 @@ namespace djj {
                     objs.insert(bestObj);
                     assignDebug << "assigning new " << bestObj << " to ship " << s.ID << " old was " << myObj;
                     hlt::Log::log(assignDebug.str());
-               }
-               newsid[s.ID] = s;
+                }
+                newsid[s.ID] = s;
             }
             shipsByID = newsid;
             for(auto it: shipsByID){
@@ -230,9 +285,9 @@ namespace djj {
             nav.clearEnemies();
             for(const hlt::Ship& s: enemyShips){
                 if(s.docking_status == hlt::ShipDockingStatus::Undocked)
-                    nav.addEnemyLoc(s.location,turn,true);    
+                    nav.addEnemyShip(s,turn,true);    
                 else
-                    nav.addEnemyLoc(s.location,turn,false);
+                    nav.addEnemyShip(s,turn,false);
 
             }
             //for each objective, get moves
