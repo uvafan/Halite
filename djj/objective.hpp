@@ -54,11 +54,12 @@ namespace djj {
             if(type == ObjType::harassPlanet) enemyUndocked -= myDocked;
             else if(type == ObjType::defendPlanet) myUndocked -= myDocked;
             if(type == ObjType::noop)priority = -INF;
-            else if(type == ObjType::dockUnownedPlanet) priority = (mySpaces-myUndocked) * 5 + 20;
+            else if(type == ObjType::dockUnownedPlanet) priority = (mySpaces-myUndocked) * 3 + 20;
             else if(type == ObjType::dockOwnedPlanet) priority = 20; 
             else if(type == ObjType::harassPlanet) priority = 50 + myUndocked * 10 - enemyUndocked * 10;
             else{
-                priority = 25 * (enemyUndocked - myUndocked);
+                if(!enemyUndocked) priority = -INF;
+                else priority = 25 * (enemyUndocked - myUndocked);
             }
         }
 

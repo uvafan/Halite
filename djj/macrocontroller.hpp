@@ -21,6 +21,7 @@ namespace djj {
         hlt::Map curMap;
         Navigator nav;
         int player_id;
+        int numPlayers;
 
         static Macrocontroller newMacrocontroller(const hlt::Map& m, int pid){
             std::unordered_map<int,Ship> sbid;
@@ -34,7 +35,7 @@ namespace djj {
             for(const hlt::Planet& planet : m.planets){
                 os.insert(Objective::newObjective(ObjType::dockUnownedPlanet,planet.location,planet.radius+4,0,planet.docking_spots));
             }
-            return {sbid,os,es,m,n,pid};
+            return {sbid,os,es,m,n,pid,(int)(m.ship_map.size())};
         }
 
         void updateMapInfo(const hlt::Map& m, int turn){
@@ -61,9 +62,6 @@ namespace djj {
                 else{
                     if(planet.owner_id == player_id){
                         Objective o = Objective::newObjective(ObjType::defendPlanet,planet.location,planet.radius+4,planet.docked_ships.size(),planet.docking_spots);
-                        for(int sid: planet.docked_ships){
-                            o.addShip(sid);
-                        }
                         objs.insert(o);
                         if(!planet.is_full()){
                             Objective o2 = Objective::newObjective(ObjType::dockOwnedPlanet,planet.location,planet.radius+4,planet.docked_ships.size(),planet.docking_spots);
@@ -92,9 +90,10 @@ namespace djj {
 
         void updateEnemyShips(){
             enemyShips.clear();
-            for(auto s: curMap.ships){
-                if(s.first!=player_id){
-                    enemyShips.insert(s.second[0]);
+            for(int i=0;i<numPlayers;i++){
+                if(i==player_id)continue;
+                for(const hlt::Ship& s: curMap.ships.at(i)){
+                    enemyShips.insert(s);
                 }
             }
         }
@@ -111,6 +110,9 @@ namespace djj {
                 //update enemy ships near me
                 o.clearEnemyShips();
                 for(const hlt::Ship& s: enemyShips){
+                    //std::ostringstream debug;
+                    //debug << "adding enemy ship " << s.entity_id;
+                    //hlt::Log::log(debug.str());
                     o.addEnemyShip(s);
                 }
                 //update priority
@@ -153,12 +155,13 @@ namespace djj {
                     shipsByID[sid].setPlan(std::queue<hlt::Move>());
                     if(aggressionFactor > 0 && pid > -1 && s.myLoc.get_distance_to(toDock.location) < 4 + toDock.radius && !toDock.is_full()){
                         moves.push_back(hlt::Move::dock(sid,pid));
-                        microd << "added move for ship " << sid;
+                        shipsByID[sid].setObjective(Objective::newObjective(ObjType::defendPlanet,toDock.location,0,0,0));
+                        microd << " ship " << sid << " docks ";
                         aggressionFactor--;
                         continue;
                     }
                     std::pair<hlt::Move,hlt::Location> info = nav.getAggressiveMove(s.myLoc,target,swarmLoc,turn,sid);
-                    microd << "added move for ship " << sid;
+                    microd << " added move for ship " << sid;
                     moves.push_back(info.first);
                     swarmLoc = updateSL(shipsSwarming,swarmLoc,info.second);
                     shipsSwarming++;
@@ -169,7 +172,7 @@ namespace djj {
                     Ship s = shipsByID[sid];
                     shipsByID[sid].setPlan(std::queue<hlt::Move>());
                     hlt::Move move = nav.getPassiveMove(s.myLoc,target,turn,sid);
-                    microd << "added move for ship " << sid;
+                    microd << " added move for ship " << sid;
                     moves.push_back(move);
                 }
             }
@@ -203,14 +206,14 @@ namespace djj {
                     debug << "ship " << sid << " reporting for duty ";
                     Ship s = shipsByID[sid];
                     if(s.docked){
-                        nav.markLoc(s.myLoc,turn);    
+                        nav.markDock(s.myLoc,turn-1000);    
                         debug << " docked";
                         hlt::Log::log(debug.str());
                         continue;
                     }
                     std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
                     std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end-start);
-                    if(time_span.count() < 0.5 && (s.plan.empty() || !nav.checkMove(s.plan.front(),s.myLoc,-1,false,false))){
+                    if(time_span.count() < 0.5 && (s.plan.empty() || !nav.checkMove(s.plan.front(),s.myLoc,turn-1000,false,false,true))){
                         bool stop = false;
                         if(o.type == ObjType::dockUnownedPlanet || o.type == ObjType::dockOwnedPlanet){
                             for(const hlt::Planet& p: curMap.planets){
@@ -235,7 +238,7 @@ namespace djj {
                     }
                     else{
                         debug << " no move found";
-                        nav.markLoc(s.myLoc,turn);
+                        nav.markDock(s.myLoc,turn-1000);
                     }
                     hlt::Log::log(debug.str());
                 }
@@ -300,7 +303,7 @@ namespace djj {
             for(hlt::Move& m: moves){
                 if(m.type == hlt::MoveType::Thrust){
                     hlt::Location loc = shipsByID[m.ship_id].myLoc;
-                    nav.checkMove(m,loc,turn,false,true);
+                    nav.checkMove(m,loc,turn,false,true,false);
                 }
             }
             return moves;
