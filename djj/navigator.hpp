@@ -334,6 +334,7 @@ namespace djj {
             int realTurn = turn+1000;
             int subturn = realTurn*SUBTURNS;
             for(int i=0;i<SUBTURNS*2;i++){
+                subturn++;
                 markPos(loc,subturn,true,false);
             }
         }
