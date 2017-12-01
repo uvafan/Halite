@@ -100,7 +100,7 @@ namespace djj {
                         double nx = q.x+dx; double ny = q.y+dy;
                         if(nx<0.5||nx>=(C-.5)||ny<0.5||ny>=(C-.5))continue;
                         hlt::Move move = hlt::Move::thrust_rad(ID,thrust,((double)(i)/NUM_DIRS)*2*PI);    
-                        if(!checkMove(move,loc,turn+q.g,false,false,false))continue;
+                        if(!checkMove(move,loc,turn+q.g,false,false))continue;
                         hlt::Location nextLoc = hlt::Location::newLoc(nx,ny);
                         double dist = nextLoc.get_distance_to(target);
                         if(dist<=rad){
@@ -158,7 +158,7 @@ namespace djj {
         void removePlan(std::queue<hlt::Move> plan, const hlt::Location& start, int turn){
             hlt::Location track = start;
             while(!plan.empty()){
-                if(!this->checkMove(plan.front(),track,turn,false,true,false))hlt::Log::log("Error when removing plan.");
+                if(!this->checkMove(plan.front(),track,turn,false,true))hlt::Log::log("Error when removing plan.");
                 track = nextLoc(plan.front(),track);
                 plan.pop();
                 turn++;
@@ -169,7 +169,7 @@ namespace djj {
         void addPlan(std::queue<hlt::Move> plan, const hlt::Location& start, int turn){
             hlt::Location track = start;
             while(!plan.empty()){
-                if(!this->checkMove(plan.front(),track,turn,true,false,false))hlt::Log::log("Error when adding plan!");
+                if(!this->checkMove(plan.front(),track,turn,true,false))hlt::Log::log("Error when adding plan!");
                 track = nextLoc(plan.front(),track);
                 plan.pop();
                 turn++;
@@ -177,7 +177,7 @@ namespace djj {
         }
 
         //alters path of move in some way
-        bool checkMove(hlt::Move move, const hlt::Location& start, int turn, bool add, bool remove, bool lastMCheck){
+        bool checkMove(hlt::Move move, const hlt::Location& start, int turn, bool add, bool remove){
             int subturn = turn*SUBTURNS;
             std::pair<double,double> dxdy = movetodxdy(move);
             double stepx = dxdy.first/(double)(SUBTURNS);
@@ -187,8 +187,7 @@ namespace djj {
             for(int i = 0;i < SUBTURNS;i++){
                 subturn++;
                 curX += stepx; curY += stepy;
-                if(lastMCheck && !markPos(hlt::Location::newLoc(curX,curY), turn, add, remove)) return false;
-                else if(!lastMCheck && !markPos(hlt::Location::newLoc(curX,curY), subturn, add, remove))return false;
+                if(!markPos(hlt::Location::newLoc(curX,curY), subturn, add, remove))return false;
             }
             return true;
         }  
@@ -288,7 +287,7 @@ namespace djj {
                     double nx = s.pos_x+dx; double ny = s.pos_y+dy;
                     if(nx<0.5||nx>=(C-.5)||ny<0.5||ny>=(C-.5))continue;
                     hlt::Move move = hlt::Move::thrust_rad(ID,thrust,((double)(i)/NUM_DIRS)*2*PI);    
-                    if(!checkMove(move,s,turn,false,false,false))continue;
+                    if(!checkMove(move,s,turn,false,false))continue;
                     hlt::Location nextL = hlt::Location::newLoc(nx,ny);
                     double distToT = nextL.get_distance_to(t);
                     double distToSwarm = nextL.get_distance_to(swarm);
@@ -314,7 +313,7 @@ namespace djj {
                     double nx = s.pos_x+dx; double ny = s.pos_y+dy;
                     if(nx<0.5||nx>=(C-.5)||ny<0.5||ny>=(C-.5))continue;
                     hlt::Move move = hlt::Move::thrust_rad(ID,thrust,((double)(i)/NUM_DIRS)*2*PI);    
-                    if(!checkMove(move,s,turn,false,false,false))continue;
+                    if(!checkMove(move,s,turn,false,false))continue;
                     hlt::Location nextL = hlt::Location::newLoc(nx,ny);
                     double distToT = nextL.get_distance_to(t);
                     double score = scoreMove(move,s,true);
@@ -327,16 +326,12 @@ namespace djj {
             return bestMove;
         }
 
-        void markDock(const hlt::Location& loc,int turn){
-            //mark one turn in advance
-            markPos(loc,turn,true,false);
-            markPos(loc,turn+1,true,false);
-            int realTurn = turn+1000;
-            int subturn = realTurn*SUBTURNS;
-            for(int i=0;i<SUBTURNS*2;i++){
-                subturn++;
-                markPos(loc,subturn,true,false);
-            }
+        void markDock(const hlt::Location& loc){
+            markPos(loc,-1,true,false);
+        }
+
+        void removeDock(const hlt::Location& loc){
+            markPos(loc,-1,false,true);
         }
 
         //mark all positions in map within ship radius of loc

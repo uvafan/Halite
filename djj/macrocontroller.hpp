@@ -206,14 +206,14 @@ namespace djj {
                     debug << "ship " << sid << " reporting for duty ";
                     Ship s = shipsByID[sid];
                     if(s.docked){
-                        nav.markDock(s.myLoc,turn-1000);    
+                        nav.markDock(s.myLoc);    
                         debug << " docked";
                         hlt::Log::log(debug.str());
                         continue;
                     }
                     std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
                     std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end-start);
-                    if(time_span.count() < 0.5 && (s.plan.empty() || !nav.checkMove(s.plan.front(),s.myLoc,turn-1000,false,false,true))){
+                    if(time_span.count() < 0.5 && (s.plan.empty() || !nav.checkMove(s.plan.front(),s.myLoc,-1,false,false))){
                         bool stop = false;
                         if(o.type == ObjType::dockUnownedPlanet || o.type == ObjType::dockOwnedPlanet){
                             for(const hlt::Planet& p: curMap.planets){
@@ -234,11 +234,12 @@ namespace djj {
                     if(!shipsByID[sid].plan.empty()){
                         debug << " moving from plan";
                         moves.push_back(shipsByID[sid].plan.front());
+                        nav.removeDock(s.myLoc);
                         shipsByID[sid].plan.pop();
                     }
                     else{
                         debug << " no move found";
-                        nav.markDock(s.myLoc,turn-1000);
+                        nav.markDock(s.myLoc);
                     }
                     hlt::Log::log(debug.str());
                 }
@@ -303,7 +304,7 @@ namespace djj {
             for(hlt::Move& m: moves){
                 if(m.type == hlt::MoveType::Thrust){
                     hlt::Location loc = shipsByID[m.ship_id].myLoc;
-                    nav.checkMove(m,loc,turn,false,true,false);
+                    nav.checkMove(m,loc,turn,false,true);
                 }
             }
             return moves;
