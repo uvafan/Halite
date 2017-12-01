@@ -152,11 +152,13 @@ namespace djj {
                 hlt::Location swarmLoc = target;
                 for(int sid: o.myShips){
                     Ship s = shipsByID[sid];
+                    if(s.docked)continue;
                     shipsByID[sid].setPlan(std::queue<hlt::Move>());
                     if(aggressionFactor > 0 && pid > -1 && s.myLoc.get_distance_to(toDock.location) < 4 + toDock.radius && !toDock.is_full()){
                         moves.push_back(hlt::Move::dock(sid,pid));
                         shipsByID[sid].setObjective(Objective::newObjective(ObjType::defendPlanet,toDock.location,0,0,0));
                         microd << " ship " << sid << " docks ";
+                        nav.markDock(s.myLoc);
                         aggressionFactor--;
                         continue;
                     }
@@ -170,6 +172,7 @@ namespace djj {
             else{
                 for(int sid: o.myShips){
                     Ship s = shipsByID[sid];
+                    if(s.docked)continue;
                     shipsByID[sid].setPlan(std::queue<hlt::Move>());
                     hlt::Move move = nav.getPassiveMove(s.myLoc,target,turn,sid);
                     microd << " added move for ship " << sid;
@@ -206,8 +209,7 @@ namespace djj {
                     debug << "ship " << sid << " reporting for duty ";
                     Ship s = shipsByID[sid];
                     if(s.docked){
-                        nav.markDock(s.myLoc);    
-                        debug << " docked";
+                        debug << " docked at " << s.myLoc.pos_x << " " << s.myLoc.pos_y;
                         hlt::Log::log(debug.str());
                         continue;
                     }
@@ -221,6 +223,7 @@ namespace djj {
                                     stop = true;
                                     moves.push_back(hlt::Move::dock(sid,p.entity_id));
                                     debug << " docking";
+                                    nav.markDock(s.myLoc);
                                     shipsByID[sid].setObjective(Objective::newObjective(ObjType::defendPlanet,p.location,0,0,0));
                                     hlt::Log::log(debug.str());
                                     break;
@@ -234,12 +237,10 @@ namespace djj {
                     if(!shipsByID[sid].plan.empty()){
                         debug << " moving from plan";
                         moves.push_back(shipsByID[sid].plan.front());
-                        nav.removeDock(s.myLoc);
                         shipsByID[sid].plan.pop();
                     }
                     else{
                         debug << " no move found";
-                        nav.markDock(s.myLoc);
                     }
                     hlt::Log::log(debug.str());
                 }
