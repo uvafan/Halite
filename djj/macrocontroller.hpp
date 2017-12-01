@@ -211,7 +211,7 @@ namespace djj {
                     bestObj.addShip(s.ID);
                     bestObj.updatePriority();
                     objs.insert(bestObj);
-                    assignDebug << "assigning new " << bestObj << " to ship " << s.ID;
+                    assignDebug << "assigning new " << bestObj << " to ship " << s.ID << " old was " << myObj;
                     hlt::Log::log(assignDebug.str());
                 }
             }

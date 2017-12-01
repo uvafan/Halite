@@ -36,7 +36,7 @@ namespace djj {
         static Objective newObjective(ObjType t, const hlt::Location& loc, double rad, int docked, int cap){
             std::unordered_set<int> ms;
             std::set<hlt::Ship> es;
-            return { ms,loc,es,rad,35,100,t,docked,cap };
+            return { ms,loc,es,rad,35,0,t,docked,cap };
         }
 
         bool operator<(const Objective& o) const{
@@ -54,9 +54,9 @@ namespace djj {
             if(type == ObjType::harassPlanet) enemyUndocked -= myDocked;
             else myUndocked -= myDocked;
             if(type == ObjType::noop)priority = -INF;
-            else if(type == ObjType::dockUnownedPlanet) priority = (mySpaces-myUndocked) * 10;
-            else if(type == ObjType::dockOwnedPlanet) priority = (mySpaces-myDocked-myUndocked) * 5;
-            else if(type == ObjType::harassPlanet) priority = 100 + myUndocked * 10 - enemyUndocked * 10;
+            else if(type == ObjType::dockUnownedPlanet) priority = (mySpaces-myUndocked) * 15;
+            else if(type == ObjType::dockOwnedPlanet) priority = (mySpaces-myDocked-myUndocked) * 10;
+            else if(type == ObjType::harassPlanet) priority = 50 + myUndocked * 10 - enemyUndocked * 10;
             else{
                 priority = 50 * (enemyUndocked - myUndocked);
             }
@@ -72,7 +72,9 @@ namespace djj {
         
         void addEnemyShip(const hlt::Ship& ship){
             if(ship.location.get_distance_to(targetLoc) <= enemyRelevanceRad){
-                //hlt::Log::log("adding");
+                std::ostringstream eas;
+                eas << " adding " << ship.entity_id;
+                hlt::Log::log(eas.str());
                 enemyShips.insert(ship);
             }
         }
