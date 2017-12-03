@@ -282,11 +282,11 @@ namespace djj {
             double bestScore = -INF;
             for(int i = 0; i < COMBAT_NUM_DIRS; i++){
                 for(auto thrust: thrusts){
-                    double dx = thrust * cos(((double)(i)/NUM_DIRS)*2*PI);
-                    double dy = thrust * sin(((double)(i)/NUM_DIRS)*2*PI);
+                    double dx = thrust * cos(((double)(i)/COMBAT_NUM_DIRS)*2*PI);
+                    double dy = thrust * sin(((double)(i)/COMBAT_NUM_DIRS)*2*PI);
                     double nx = s.pos_x+dx; double ny = s.pos_y+dy;
                     if(nx<0.5||nx>=(C-.5)||ny<0.5||ny>=(C-.5))continue;
-                    hlt::Move move = hlt::Move::thrust_rad(ID,thrust,((double)(i)/NUM_DIRS)*2*PI);    
+                    hlt::Move move = hlt::Move::thrust_rad(ID,thrust,((double)(i)/COMBAT_NUM_DIRS)*2*PI);    
                     if(!checkMove(move,s,turn,false,false))continue;
                     hlt::Location nextL = hlt::Location::newLoc(nx,ny);
                     double distToT = nextL.get_distance_to(t);
@@ -309,11 +309,11 @@ namespace djj {
             double bestScore = -INF;
             for(int i = 0; i < COMBAT_NUM_DIRS; i++){
                 for(auto thrust: thrusts){
-                    double dx = thrust * cos(((double)(i)/NUM_DIRS)*2*PI);
-                    double dy = thrust * sin(((double)(i)/NUM_DIRS)*2*PI);
+                    double dx = thrust * cos(((double)(i)/COMBAT_NUM_DIRS)*2*PI);
+                    double dy = thrust * sin(((double)(i)/COMBAT_NUM_DIRS)*2*PI);
                     double nx = s.pos_x+dx; double ny = s.pos_y+dy;
                     if(nx<0.5||nx>=(C-.5)||ny<0.5||ny>=(C-.5))continue;
-                    hlt::Move move = hlt::Move::thrust_rad(ID,thrust,((double)(i)/NUM_DIRS)*2*PI);    
+                    hlt::Move move = hlt::Move::thrust_rad(ID,thrust,((double)(i)/COMBAT_NUM_DIRS)*2*PI);    
                     if(!checkMove(move,s,turn,false,false))continue;
                     hlt::Location nextL = hlt::Location::newLoc(nx,ny);
                     double distToT = nextL.get_distance_to(t);

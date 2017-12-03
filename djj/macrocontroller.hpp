@@ -147,6 +147,7 @@ namespace djj {
             int aggressionFactor = myShipCount - theirShipCount;
             microd << "aggFactor = " << aggressionFactor;
             hlt::Location target = o.getMicroTarget();
+            microd << " target = " << target.pos_x << " " << target.pos_y;
             if(aggressionFactor>0){
                 int shipsSwarming = 0;
                 hlt::Location swarmLoc = target;
@@ -166,6 +167,7 @@ namespace djj {
                     microd << " added move for ship " << sid;
                     moves.push_back(info.first);
                     swarmLoc = updateSL(shipsSwarming,swarmLoc,info.second);
+                    microd << " new SL = " << swarmLoc.pos_x << " " << swarmLoc.pos_y;
                     shipsSwarming++;
                 }
             }
