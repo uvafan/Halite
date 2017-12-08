@@ -221,7 +221,7 @@ namespace djj {
                     for(int y = minY; y <= maxY; y++){
                         //min turn at which enemy can attack me
                         double distToShip = loc.get_distance_to(hlt::Location::newLoc(x,y));
-                        if(distToShip <= 0.5){ //don't collide!
+                        if(distToShip <= 1){ //don't collide!
                             for(int i=0;i<SUBTURNS;i++){
                                 enemyDockedMap[x][y]=1;
                             }

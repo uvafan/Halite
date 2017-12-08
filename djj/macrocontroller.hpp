@@ -155,7 +155,7 @@ namespace djj {
                     Ship s = shipsByID[sid];
                     if(s.docked)continue;
                     shipsByID[sid].setPlan(std::queue<hlt::Move>());
-                    if(aggressionFactor > 0 && pid > -1 && s.myLoc.get_distance_to(toDock.location) < 4 + toDock.radius && !toDock.is_full()){
+                    if(o.type != ObjType::harassPlanet && aggressionFactor > 0 && pid > -1 && s.myLoc.get_distance_to(toDock.location) < 4 + toDock.radius && !toDock.is_full()){
                         moves.push_back(hlt::Move::dock(sid,pid));
                         shipsByID[sid].setObjective(Objective::newObjective(ObjType::defendPlanet,toDock.location,0,0,0));
                         microd << " ship " << sid << " docks ";
