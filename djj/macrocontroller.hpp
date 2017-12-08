@@ -149,8 +149,8 @@ namespace djj {
             hlt::Location target = o.getMicroTarget();
             microd << " target = " << target.pos_x << " " << target.pos_y;
             if(aggressionFactor>0){
-                int shipsSwarming = 0;
-                hlt::Location swarmLoc = target;
+                //int shipsSwarming = 0;
+                //hlt::Location swarmLoc = target;
                 for(int sid: o.myShips){
                     Ship s = shipsByID[sid];
                     if(s.docked)continue;
@@ -163,12 +163,12 @@ namespace djj {
                         aggressionFactor--;
                         continue;
                     }
-                    std::pair<hlt::Move,hlt::Location> info = nav.getAggressiveMove(s.myLoc,target,swarmLoc,turn,sid);
+                    std::pair<hlt::Move,hlt::Location> info = nav.getAggressiveMove(s.myLoc,target,turn,sid);
                     microd << " added move for ship " << sid;
                     moves.push_back(info.first);
-                    swarmLoc = updateSL(shipsSwarming,swarmLoc,info.second);
-                    microd << " new SL = " << swarmLoc.pos_x << " " << swarmLoc.pos_y;
-                    shipsSwarming++;
+                    //swarmLoc = updateSL(shipsSwarming,swarmLoc,info.second);
+                    //microd << " new SL = " << swarmLoc.pos_x << " " << swarmLoc.pos_y;
+                    //shipsSwarming++;
                 }
             }
             else{

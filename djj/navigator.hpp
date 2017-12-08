@@ -275,7 +275,7 @@ namespace djj {
             return 100 - potentialDamagers.size()*20; 
         }
 
-        std::pair<hlt::Move,hlt::Location> getAggressiveMove(hlt::Location s, hlt::Location t, hlt::Location swarm, int turn, int ID){
+        std::pair<hlt::Move,hlt::Location> getAggressiveMove(hlt::Location s, hlt::Location t, /*hlt::Location swarm,*/ int turn, int ID){
             int thrusts[] = {2,4,7};
             hlt::Move bestMove = hlt::Move::noop();
             hlt::Location nextLoc = s;
@@ -290,10 +290,10 @@ namespace djj {
                     if(!checkMove(move,s,turn,false,false))continue;
                     hlt::Location nextL = hlt::Location::newLoc(nx,ny);
                     double distToT = nextL.get_distance_to(t);
-                    double distToSwarm = nextL.get_distance_to(swarm);
+                    //double distToSwarm = nextL.get_distance_to(swarm);
                     double score = scoreMove(move,s,true);
-                    if(score - distToT - distToSwarm > bestScore){
-                        bestScore = score - distToT - distToSwarm;
+                    if(score - distToT /*- distToSwarm*/ > bestScore){
+                        bestScore = score - distToT /*- distToSwarm*/;
                         bestMove = move;
                         nextLoc = nextL;
                     }

@@ -125,7 +125,7 @@ namespace djj {
                 //std::ostringstream eas;
                 //eas << " adding " << ship.entity_id;
                 //hlt::Log::log(eas.str());
-                if(ship.docking_status==hlt::ShipDockingStatus::Docked && type != ObjType::harassPlanet) return;
+                if(ship.docking_status!=hlt::ShipDockingStatus::Undocked && type != ObjType::harassPlanet) return;
                 enemyShips.insert(ship);
             }
         }
