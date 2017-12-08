@@ -59,7 +59,7 @@ namespace djj {
             else if(type == ObjType::harassPlanet) priority = 50 + myUndocked * 10 - enemyUndocked * 10;
             else{
                 if(!enemyUndocked) priority = -INF;
-                else priority = 25 * (enemyUndocked - myUndocked);
+                else priority = 15 * (enemyUndocked - myUndocked);
             }
         }
 
@@ -122,9 +122,10 @@ namespace djj {
         
         void addEnemyShip(const hlt::Ship& ship){
             if(ship.location.get_distance_to(targetLoc) <= enemyRelevanceRad){
-                std::ostringstream eas;
+                //std::ostringstream eas;
                 //eas << " adding " << ship.entity_id;
-                hlt::Log::log(eas.str());
+                //hlt::Log::log(eas.str());
+                if(ship.docking_status==hlt::ShipDockingStatus::Docked && type != ObjType::harassPlanet) return;
                 enemyShips.insert(ship);
             }
         }
