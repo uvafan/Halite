@@ -113,6 +113,9 @@ namespace djj {
                                 s.push(getMove(ID,q.x,q.y,toX,toY));
                                 toX = q.x;
                                 toY = q.y;
+                                std::ostringstream planDebug;
+                                planDebug << "pushing move from " << q.x << " " << q.y << " to " << toX << " " << toY;
+                                hlt::Log::log(planDebug.str());
                                 if(q.p==-1)break;
                                 q = closed[q.p];
                                 //std::ostringstream IDinf;
@@ -150,7 +153,7 @@ namespace djj {
               hlt::Log::log(moveinf.str());*/
             double dx = x2-x1; double dy = y2-y1;
             int thrust = int(sqrt(dx*dx+dy*dy)+.5);
-            int angle = atan2(dy,dx);
+            double angle = atan2(dy,dx);
             return hlt::Move::thrust_rad(ID,thrust,angle);
         }
 
