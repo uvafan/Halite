@@ -149,8 +149,8 @@ namespace djj {
               moveinf << "getting move from " << x1 << " " << y1 << " " << x2 << " " << y2;
               hlt::Log::log(moveinf.str());*/
             double dx = x2-x1; double dy = y2-y1;
-            double thrust = sqrt(dx*dx+dy*dy);
-            double angle = atan2(dy,dx);
+            int thrust = int(sqrt(dx*dx+dy*dy)+.5);
+            int angle = int(atan2(dy,dx)+.5);
             return hlt::Move::thrust_rad(ID,thrust,angle);
         }
 
