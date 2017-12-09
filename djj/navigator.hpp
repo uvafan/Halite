@@ -71,7 +71,7 @@ namespace djj {
         }
 
         //get plan to get within radius rad - A*, then add plan to map
-        std::queue<hlt::Move> getPlan(int ID, const hlt::Location& source, const hlt::Location& target, double rad, int turn){
+        std::queue<hlt::Move> getPlan(int ID, const hlt::Location& source, const hlt::Location& target, double rad, int turn, bool addDock){
             std::ostringstream initial;
             //initial << "getting plan source = " << source.pos_x << " " << source.pos_y
             //    << " target = " << target.pos_x << " " << target.pos_y << " rad = " << rad;
@@ -122,7 +122,7 @@ namespace djj {
                             while(!s.empty()){
                                 ret.push(s.top()); s.pop();
                             }
-                            addPlan(ret,source,turn);
+                            addPlan(ret,source,turn,addDock);
                             done = true;
                             //delete q;
                             break;
@@ -166,13 +166,16 @@ namespace djj {
         }
 
         //adds all moves in plan from map
-        void addPlan(std::queue<hlt::Move> plan, const hlt::Location& start, int turn){
+        void addPlan(std::queue<hlt::Move> plan, const hlt::Location& start, int turn, bool addDock){
             hlt::Location track = start;
             while(!plan.empty()){
                 if(!this->checkMove(plan.front(),track,turn,true,false))hlt::Log::log("Error when adding plan!");
                 track = nextLoc(plan.front(),track);
                 plan.pop();
                 turn++;
+            }
+            if(addDock){
+                this->checkMove(hlt::Move::noop(),track,turn,true,false);
             }
         }
 
@@ -371,6 +374,7 @@ namespace djj {
         } 
 
         static std::pair<double,double> movetodxdy(hlt::Move move){
+            if(move.type == hlt::MoveType::Noop) return std::pair<double,double>(0,0);
             double dx = move.move_thrust * cos(move.move_angle_deg*PI/180);
             double dy = move.move_thrust * sin(move.move_angle_deg*PI/180);
             return std::pair<double,double>(dx,dy);

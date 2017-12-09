@@ -234,7 +234,8 @@ namespace djj {
                         }
                         if(stop)continue;
                         debug << "calculating new plan from " << s.myLoc.pos_x << " " << s.myLoc.pos_y << " to " << targetLoc.pos_x << " " << targetLoc.pos_y;
-                        shipsByID[sid].setPlan(nav.getPlan(sid,s.myLoc,targetLoc,o.targetRad,turn));
+                        bool addDockToPlan = (o.type == ObjType::dockUnownedPlanet || o.type == ObjType::dockOwnedPlanet);
+                        shipsByID[sid].setPlan(nav.getPlan(sid,s.myLoc,targetLoc,o.targetRad,turn,addDockToPlan));
                     }
                     if(!shipsByID[sid].plan.empty()){
                         debug << " moving from plan";
