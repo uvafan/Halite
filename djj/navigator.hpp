@@ -251,7 +251,7 @@ namespace djj {
                 hlt::Location loc = hlt::Location::newLoc(curX,curY);
                 std::vector<int> xchecks, ychecks;
                 xchecks.push_back((int)(curX)); xchecks.push_back((int)(curX+1));
-                ychecks.push_back((int)(curX)); ychecks.push_back((int)(curX+1));
+                ychecks.push_back((int)(curY)); ychecks.push_back((int)(curY+1));
                 for(int i = 0; i < 2; i++){
                     for(int j= 0; j < 2; j++){
                         int x = xchecks[i]; int y = ychecks[j];
