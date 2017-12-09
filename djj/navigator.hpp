@@ -150,7 +150,7 @@ namespace djj {
               hlt::Log::log(moveinf.str());*/
             double dx = x2-x1; double dy = y2-y1;
             int thrust = int(sqrt(dx*dx+dy*dy)+.5);
-            int angle = int(atan2(dy,dx)+.5);
+            int angle = atan2(dy,dx);
             return hlt::Move::thrust_rad(ID,thrust,angle);
         }
 
