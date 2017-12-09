@@ -238,8 +238,9 @@ namespace djj {
                         shipsByID[sid].setPlan(nav.getPlan(sid,s.myLoc,targetLoc,o.targetRad,turn,addDockToPlan));
                     }
                     if(!shipsByID[sid].plan.empty()){
-                        debug << " moving from plan";
-                        moves.push_back(shipsByID[sid].plan.front());
+                        hlt::Move move = shipsByID[sid].plan.front();
+                        debug << " moving from plan with thrust " << move.move_thrust << " and angle " << move.move_angle_deg;
+                        moves.push_back(move);
                         shipsByID[sid].plan.pop();
                     }
                     else{
