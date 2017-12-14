@@ -217,6 +217,7 @@ namespace djj {
                         int subturnsToGo = int(distToGo/stepDist);
                         for(int i=subturnsToGo; i<SUBTURNS; i++){
                             enemyMap[x][y][i].first.insert(s);
+                            hlt::Log::log("adding to first");
                         }
                     }
                 }
@@ -266,6 +267,7 @@ namespace djj {
                         if(loc.get_distance_to(hlt::Location::newLoc(x,y)) <= COLLISION_THRESHOLD){
                             if(enemyDockedMap[x][y])return -INF;
                             for(hlt::Ship s: enemyMap[x][y][i].first){
+                                hlt::Log::log("adding pot damager");
                                 potentialDamagers.insert(s);
                             }
                             for(hlt::Ship s: enemyMap[x][y][i].second){
@@ -300,7 +302,7 @@ namespace djj {
                     //double distToSwarm = nextL.get_distance_to(swarm);
                     double score = scoreMove(move,s,true);
                     std::ostringstream scored;
-                    scored << "move with nextL " << nextL.pos_x << " " << nextL.pos_y << " has score " << score << " and dist " << distToT;
+                    //scored << "move with nextL " << nextL.pos_x << " " << nextL.pos_y << " has score " << score << " and dist " << distToT;
                     hlt::Log::log(scored.str());
                     if(score - distToT /*- distToSwarm*/ > bestScore){
                         bestScore = score - distToT /*- distToSwarm*/;
@@ -327,9 +329,9 @@ namespace djj {
                     if(!checkMove(move,s,turn,false,false))continue;
                     hlt::Location nextL = hlt::Location::newLoc(nx,ny);
                     double distToT = nextL.get_distance_to(t);
-                    double score = scoreMove(move,s,true);
+                    double score = scoreMove(move,s,false);
                     std::ostringstream scored;
-                    scored << "move with nextL " << nextL.pos_x << " " << nextL.pos_y << " has score " << score << " and dist " << distToT;
+                    //scored << "move with nextL " << nextL.pos_x << " " << nextL.pos_y << " has score " << score << " and dist " << distToT;
                     hlt::Log::log(scored.str());
                     if(score - distToT > bestScore){
                         bestScore = score - distToT;

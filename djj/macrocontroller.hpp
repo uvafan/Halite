@@ -172,6 +172,9 @@ namespace djj {
             else{
                 for(int sid: o.myShips){
                     Ship s = shipsByID[sid];
+                    if(!s.plan.empty())nav.removePlan(s.plan,s.myLoc,turn);
+                    //in case we were planning to dock
+                    nav.checkMove(hlt::Move::noop(),s.myLoc,turn,false,true);
                     if(s.docked)continue;
                     shipsByID[sid].setPlan(std::queue<hlt::Move>());
                     hlt::Move move = nav.getPassiveMove(s.myLoc,target,turn,sid);
