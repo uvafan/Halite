@@ -124,7 +124,6 @@ namespace djj {
         std::vector<hlt::Move> doMicro(Objective o, std::vector<hlt::Move> moves, int turn){
             std::ostringstream microd;
             microd << "doing micro ";
-            int myShipCount = o.myShips.size() - o.myDocked;
             int pid = -1;
             hlt::Planet toDock = curMap.planets[0];
             for(const hlt::Planet& p: curMap.planets){
@@ -133,18 +132,14 @@ namespace djj {
                     toDock = p;
                 }
             }
+            int aggressionFactor = o.getAggFactor();
             if(o.type == ObjType::dockOwnedPlanet){
                 for(Objective o2: objs){
                     if(o2.targetLoc.pos_x == o.targetLoc.pos_x && o2.targetLoc.pos_y == o.targetLoc.pos_y && o2.type == ObjType::defendPlanet){
-                        myShipCount += o2.myShips.size() - o.myDocked;
+                        aggressionFactor += o2.myShips.size() - o2.myDocked;
                     }
                 }
             }
-            int theirShipCount = o.enemyShips.size();
-            for(const hlt::Ship& s: enemyShips){
-                if(s.docking_status != hlt::ShipDockingStatus::Undocked)theirShipCount--;
-            }
-            int aggressionFactor = myShipCount - theirShipCount;
             microd << "aggFactor = " << aggressionFactor;
             hlt::Location target = o.getMicroTarget();
             microd << " target = " << target.pos_x << " " << target.pos_y;

@@ -63,6 +63,14 @@ namespace djj {
             }
         }
 
+        int getAggFactor(){
+            int myUndocked = myShips.size();
+            int enemyUndocked = enemyShips.size();
+            if(type == ObjType::harassPlanet) enemyUndocked -= myDocked;
+            else if(type == ObjType::defendPlanet) myUndocked -= myDocked;
+            return (myUndocked - enemyUndocked); 
+        }
+
         static hlt::Ship closestShipToLoc(std::set<hlt::Ship> ships, hlt::Location loc, bool excludeZeroAndDocked){
             double minDist = INF;
             hlt::Ship ret = *ships.begin();
@@ -125,7 +133,8 @@ namespace djj {
                 //std::ostringstream eas;
                 //eas << " adding " << ship.entity_id;
                 //hlt::Log::log(eas.str());
-                if(ship.docking_status!=hlt::ShipDockingStatus::Undocked && type != ObjType::harassPlanet) return;
+                if(ship.docking_status!=hlt::ShipDockingStatus::Undocked && 
+                    (type != ObjType::harassPlanet || ship.location.get_distance_to(targetLoc) > targetRad+5 )) return;
                 enemyShips.insert(ship);
             }
         }

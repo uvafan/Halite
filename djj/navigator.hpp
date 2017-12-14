@@ -328,6 +328,9 @@ namespace djj {
                     hlt::Location nextL = hlt::Location::newLoc(nx,ny);
                     double distToT = nextL.get_distance_to(t);
                     double score = scoreMove(move,s,true);
+                    std::ostringstream scored;
+                    scored << "move with nextL " << nextL.pos_x << " " << nextL.pos_y << " has score " << score << " and dist " << distToT;
+                    hlt::Log::log(scored.str());
                     if(score - distToT > bestScore){
                         bestScore = score - distToT;
                         bestMove = move;
