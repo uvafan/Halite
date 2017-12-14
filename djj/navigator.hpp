@@ -217,7 +217,7 @@ namespace djj {
                         int subturnsToGo = int(distToGo/stepDist);
                         for(int i=subturnsToGo; i<SUBTURNS; i++){
                             enemyMap[x][y][i].first.insert(s);
-                            hlt::Log::log("adding to first");
+                            //hlt::Log::log("adding to first");
                         }
                     }
                 }
@@ -267,7 +267,7 @@ namespace djj {
                         if(loc.get_distance_to(hlt::Location::newLoc(x,y)) <= COLLISION_THRESHOLD){
                             if(enemyDockedMap[x][y])return -INF;
                             for(hlt::Ship s: enemyMap[x][y][i].first){
-                                hlt::Log::log("adding pot damager");
+                                //hlt::Log::log("adding pot damager");
                                 potentialDamagers.insert(s);
                             }
                             for(hlt::Ship s: enemyMap[x][y][i].second){
@@ -302,8 +302,8 @@ namespace djj {
                     //double distToSwarm = nextL.get_distance_to(swarm);
                     double score = scoreMove(move,s,true);
                     std::ostringstream scored;
-                    //scored << "move with nextL " << nextL.pos_x << " " << nextL.pos_y << " has score " << score << " and dist " << distToT;
-                    hlt::Log::log(scored.str());
+                    scored << "move with nextL " << nextL.pos_x << " " << nextL.pos_y << " has score " << score << " and dist " << distToT;
+                    //hlt::Log::log(scored.str());
                     if(score - distToT /*- distToSwarm*/ > bestScore){
                         bestScore = score - distToT /*- distToSwarm*/;
                         bestMove = move;
@@ -311,6 +311,9 @@ namespace djj {
                     }
                 }
             }
+            std::ostringstream scored;
+            scored << "best score was " << bestScore;
+            hlt::Log::log(scored.str());
             checkMove(bestMove,s,turn,true,false);
             return std::make_pair(bestMove,nextLoc);
         }
@@ -331,14 +334,17 @@ namespace djj {
                     double distToT = nextL.get_distance_to(t);
                     double score = scoreMove(move,s,false);
                     std::ostringstream scored;
-                    //scored << "move with nextL " << nextL.pos_x << " " << nextL.pos_y << " has score " << score << " and dist " << distToT;
-                    hlt::Log::log(scored.str());
+                    scored << "move with nextL " << nextL.pos_x << " " << nextL.pos_y << " has score " << score << " and dist " << distToT;
+                    //hlt::Log::log(scored.str());
                     if(score - distToT > bestScore){
                         bestScore = score - distToT;
                         bestMove = move;
                     }
                 }
             }
+            std::ostringstream scored;
+            scored << "best score was " << bestScore;
+            hlt::Log::log(scored.str());
             checkMove(bestMove,s,turn,true,false);
             return bestMove;
         }
