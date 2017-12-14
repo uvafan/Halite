@@ -234,6 +234,9 @@ namespace djj {
                             }
                         }
                         if(stop)continue;
+                        if(!s.plan.empty())nav.removePlan(s.plan,s.myLoc,turn);
+                        //in case we were planning to dock
+                        nav.checkMove(hlt::Move::noop(),s.myLoc,turn,false,true);
                         debug << "calculating new plan from " << s.myLoc.pos_x << " " << s.myLoc.pos_y << " to " << targetLoc.pos_x << " " << targetLoc.pos_y;
                         bool addDockToPlan = (o.type == ObjType::dockUnownedPlanet || o.type == ObjType::dockOwnedPlanet);
                         shipsByID[sid].setPlan(nav.getPlan(sid,s.myLoc,targetLoc,o.targetRad,turn,addDockToPlan));
