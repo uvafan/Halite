@@ -154,6 +154,7 @@ namespace djj {
                 for(int sid: o.myShips){
                     Ship s = shipsByID[sid];
                     if(s.docked)continue;
+                    if(!s.plan.empty()) nav.removePlan(s.plan,s.myLoc,turn);
                     shipsByID[sid].setPlan(std::queue<hlt::Move>());
                     if(o.type != ObjType::harassPlanet && aggressionFactor > 0 && pid > -1 && s.myLoc.get_distance_to(toDock.location) < 4 + toDock.radius && !toDock.is_full()){
                         moves.push_back(hlt::Move::dock(sid,pid));
@@ -233,6 +234,7 @@ namespace djj {
                             }
                         }
                         if(stop)continue;
+                        if(!s.plan.empty())nav.removePlan(s.plan,s.myLoc,turn);
                         debug << "calculating new plan from " << s.myLoc.pos_x << " " << s.myLoc.pos_y << " to " << targetLoc.pos_x << " " << targetLoc.pos_y;
                         bool addDockToPlan = (o.type == ObjType::dockUnownedPlanet || o.type == ObjType::dockOwnedPlanet);
                         shipsByID[sid].setPlan(nav.getPlan(sid,s.myLoc,targetLoc,o.targetRad,turn,addDockToPlan));
