@@ -164,7 +164,7 @@ namespace djj {
                         continue;
                     }
                     std::pair<hlt::Move,hlt::Location> info = nav.getAggressiveMove(s.myLoc,target,turn,sid);
-                    microd << " added move for ship " << sid;
+                    microd << " added move for ship " << sid << " with end loc " << info.second.pos_x << " " << info.second.pos_y;
                     moves.push_back(info.first);
                     //swarmLoc = updateSL(shipsSwarming,swarmLoc,info.second);
                     //microd << " new SL = " << swarmLoc.pos_x << " " << swarmLoc.pos_y;
