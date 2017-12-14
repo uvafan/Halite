@@ -363,7 +363,9 @@ namespace djj {
                         //debug << "checking " << x << " " << y;
                         //hlt::Log::log(debug.str());
                         if((!remove && map[x][y].find(turn) != map[x][y].end())){
-                            //hlt::Log::log("position already claimed");
+                            std::ostringstream claimed;
+                            claimed << "position " << x << " " << y << " already claimed for subturn " << turn;
+                            hlt::Log::log(claimed.str());
                             return false;
                         }
                         else if(!remove && map[x][y].find(-1) != map[x][y].end()){
@@ -373,7 +375,12 @@ namespace djj {
                         if(add){
                             map[xchecks[i]][ychecks[j]].insert(turn);
                         }
-                        else if(remove) map[xchecks[i]][ychecks[j]].erase(turn);
+                        else if(remove){ 
+                            map[xchecks[i]][ychecks[j]].erase(turn);
+                            std::ostringstream rmd;
+                            rmd << "removing mark of subturn " << turn << " at pos " << x << " " << y; 
+                            hlt::Log::log(rmd.str());
+                        }
                     }
                 }
             }
