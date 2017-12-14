@@ -178,6 +178,7 @@ namespace djj {
                 turn++;
             }
             if(addDock){
+                hlt::Log::log("nav is adding dock");
                 this->checkMove(hlt::Move::noop(),track,turn,true,false);
             }
         }
