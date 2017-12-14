@@ -246,7 +246,7 @@ namespace djj {
             }
         }
 
-        double scoreMove(hlt::Move move, hlt::Location start, bool aggressive){
+        int scoreMove(hlt::Move move, hlt::Location start, bool aggressive){
             std::pair<double,double> dxdy = movetodxdy(move);
             double stepx = dxdy.first/(double)(SUBTURNS);
             double stepy = dxdy.second/(double)(SUBTURNS);
@@ -300,7 +300,7 @@ namespace djj {
                     hlt::Location nextL = hlt::Location::newLoc(nx,ny);
                     double distToT = nextL.get_distance_to(t);
                     //double distToSwarm = nextL.get_distance_to(swarm);
-                    double score = scoreMove(move,s,true);
+                    double score = (double)(scoreMove(move,s,true));
                     std::ostringstream scored;
                     scored << "move with nextL " << nextL.pos_x << " " << nextL.pos_y << " has score " << score << " and dist " << distToT;
                     //hlt::Log::log(scored.str());
@@ -332,7 +332,7 @@ namespace djj {
                     if(!checkMove(move,s,turn,false,false))continue;
                     hlt::Location nextL = hlt::Location::newLoc(nx,ny);
                     double distToT = nextL.get_distance_to(t);
-                    double score = scoreMove(move,s,false);
+                    double score = (double)(scoreMove(move,s,false));
                     std::ostringstream scored;
                     scored << "move with nextL " << nextL.pos_x << " " << nextL.pos_y << " has score " << score << " and dist " << distToT;
                     //hlt::Log::log(scored.str());
