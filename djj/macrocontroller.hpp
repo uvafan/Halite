@@ -153,6 +153,10 @@ namespace djj {
                 //hlt::Location swarmLoc = target;
                 for(int sid: o.myShips){
                     Ship s = shipsByID[sid];
+                    if(!s.plan.empty())nav.removePlan(s.plan,s.myLoc,turn);
+                    //in case we were planning to dock
+                    nav.checkMove(hlt::Move::noop(),s.myLoc,turn,false,true);
+                    shipsByID[sid].setPlan(std::queue<hlt::Move>());
                     if(s.docked)continue;
                     if(o.type != ObjType::harassPlanet && aggressionFactor > 0 && pid > -1 && s.myLoc.get_distance_to(toDock.location) < 4 + toDock.radius && !toDock.is_full()){
                         moves.push_back(hlt::Move::dock(sid,pid));
